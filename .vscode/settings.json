@@ -1,0 +1,12 @@
+{
+    "editor.formatOnSave": true,
+    "files.trimTrailingWhitespace": true,
+    "[typescript]": {
+		"editor.defaultFormatter": "vscode.typescript-language-features"
+	},
+    "typescript.preferences.quoteStyle": "double",
+	"typescript.format.semicolons": "insert",
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    }
+}
