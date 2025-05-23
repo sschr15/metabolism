@@ -1,4 +1,4 @@
-import { throwError } from "#common/index.ts";
+import { mapObjectValues, throwError } from "#common/index.ts";
 import { defineGoal, type VersionFileOutput } from "#types/goal.ts";
 import { HTTPCacheMode } from "#types/httpCache.ts";
 import { PistonVersion } from "./pistonMeta/pistonVersion.ts";
@@ -49,10 +49,7 @@ export default defineGoal({
 								? { ...x.downloads.artifact, path: undefined }
 								: undefined,
 							classifiers: x.downloads.classifiers ?
-								Object.fromEntries(
-									Object.entries(x.downloads.classifiers)
-										.map(([key, value]) => [key, { ...value, path: undefined }])
-								)
+								mapObjectValues(x.downloads.classifiers, value => ({ ...value, path: undefined }))
 								: undefined,
 						} : undefined
 					}))

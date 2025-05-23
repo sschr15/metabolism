@@ -12,3 +12,12 @@ export function isEmpty(obj: {} | undefined | null) {
 
 	return true;
 }
+
+export function mapObjectEntries<I, O>(obj: { [s: string]: I; }, callback: (value: [string, I]) => [string, O]) {
+	return Object.fromEntries(Object.entries(obj)
+		.map(callback));
+}
+
+export function mapObjectValues<I, O>(obj: { [s: string]: I; }, callback: (value: I) => O) {
+	return mapObjectEntries(obj, ([key, value]) => [key, callback(value)]);
+}
