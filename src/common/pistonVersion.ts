@@ -1,4 +1,5 @@
 import { string, z } from "zod/v4";
+import { isEmpty } from "./index.ts";
 
 // reused subset of https://minecraft.wiki/w/Client.json
 // (other types are internal to the minecraft goal)
@@ -25,8 +26,7 @@ export function ruleSetAppliesByDefault(rules: PistonRule[]): boolean {
 		return true;
 
 	const highestPrecedence = rules.findLast(rule =>
-		Object.keys(rule.features ?? {}).length === 0 // no feature requirements
-		&& Object.keys(rule.os ?? {}).length === 0 // no OS requirements
+		isEmpty(rule.features) && isEmpty(rule.os)
 	);
 
 	return highestPrecedence?.action === "allow";

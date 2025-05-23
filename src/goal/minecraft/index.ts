@@ -1,4 +1,4 @@
-import { throwError } from "#common/throwExpression.ts";
+import { throwError } from "#common/index.ts";
 import { defineGoal, type VersionFileOutput } from "#types/goal.ts";
 import { HTTPCacheMode } from "#types/httpCache.ts";
 import { PistonVersion } from "./pistonMeta/pistonVersion.ts";
