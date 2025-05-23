@@ -1,4 +1,4 @@
-import { PistonArtifact, PistonAssetIndexRef, PistonLibrary, PistonRule } from "#common/pistonVersion.ts";
+import { PistonArtifact, PistonAssetIndexRef, PistonLibrary, PistonRule } from "#types/pistonVersion.ts";
 import { z } from "zod/v4";
 
 export const PistonArgument = z.union([

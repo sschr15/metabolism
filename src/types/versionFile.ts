@@ -1,4 +1,4 @@
-import type { PistonLibrary } from "#common/pistonVersion.ts";
+import type { PistonLibrary } from "#types/pistonVersion.ts";
 
 export interface VersionFile {
 	uid: string;

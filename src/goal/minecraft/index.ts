@@ -1,27 +1,14 @@
 import { mapObjectValues, throwError } from "#common/index.ts";
+import pistonVersionManifest from "#provider/pistonMeta/index.ts";
 import { defineGoal, type VersionFileOutput } from "#types/goal.ts";
-import { HTTPCacheMode } from "#types/httpCache.ts";
-import { PistonVersion } from "./pistonMeta/pistonVersion.ts";
-import { fetchPistonVersionManifest } from "./pistonMeta/pistonVersionManifest.ts";
 
 export default defineGoal({
 	id: "net.minecraft",
 	name: "Minecraft",
-	async prepare(http) {
-		const manifest = await fetchPistonVersionManifest(http);
+	provider: pistonVersionManifest,
 
-		return manifest.versions.map(async version => {
-			const json = await http.fetchJSON(
-				"versions/" + version.id + ".json",
-				version.url,
-				{ mode: HTTPCacheMode.CompareLocalDigest, algorithm: "sha-1", expected: version.sha1 }
-			);
-
-			return PistonVersion.parse(json);
-		});
-	},
-	generate(input): VersionFileOutput {
-		return {
+	generate(data): VersionFileOutput[] {
+		return data.map(input => ({
 			version: input.id,
 			type: input.type,
 			releaseTime: input.releaseTime,
@@ -56,7 +43,7 @@ export default defineGoal({
 					.filter(x => !x.name.startsWith("org.lwjgl:") && !x.name.startsWith("org.lwjgl.lwjgl:"))
 			),
 			assetIndex: input.assetIndex,
-		};
+		}));
 	}
 });
 

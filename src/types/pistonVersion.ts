@@ -1,5 +1,5 @@
 import { string, z } from "zod/v4";
-import { isEmpty } from "./index.ts";
+import { isEmpty } from "../common/index.ts";
 
 // reused subset of https://minecraft.wiki/w/Client.json
 // (other types are internal to the minecraft goal)

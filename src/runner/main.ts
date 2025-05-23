@@ -1,9 +1,7 @@
 import { default as packageJSON } from "#project/package.json" with { type: "json" };
 import { chalkStderr as format } from "chalk";
-import { importGoals, runAll } from "./index.ts";
+import { ALL_GOALS, runAll } from "./index.ts";
 import { friendlyParseArgs } from "./util/args.ts";
-
-const goals = await importGoals();
 
 const args = friendlyParseArgs({
 	args: process.argv.slice(2),
@@ -32,12 +30,6 @@ const args = friendlyParseArgs({
 			description: "Assume cache is up-to-date",
 			default: false,
 		},
-		prepareOnly: {
-			type: "boolean",
-			short: "p",
-			description: "Only populate the cache - do not try to transform it into metadata",
-			default: false,
-		},
 		help: {
 			type: "boolean",
 			short: "h",
@@ -47,16 +39,16 @@ const args = friendlyParseArgs({
 	},
 	allowPositionals: true,
 	positionalUsage: "<goal(s)>",
-	extraText: format.bold.underline("Goals") + `\n${format.bold(["all", ...goals.map(goal => goal.id)].join(", "))}`
+	extraText: format.bold.underline("Goals") + `\n${format.bold(["all", ...ALL_GOALS.map(goal => goal.id)].join(", "))}`
 });
 
 const goalSet = new Set(args.positionals);
 
 if (goalSet.delete("all")) {
-	var targetGoals = goals;
+	var targetGoals = ALL_GOALS;
 	goalSet.clear();
 } else
-	var targetGoals = goals.filter(goal => goalSet.delete(goal.id));
+	var targetGoals = ALL_GOALS.filter(goal => goalSet.delete(goal.id));
 
 if (goalSet.size !== 0) {
 	console.error(format.red.bold("invalid goals: ") + [...goalSet].join(","));
