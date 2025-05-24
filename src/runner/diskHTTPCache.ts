@@ -21,7 +21,7 @@ type ResolvedCacheEntry = [CacheEntry, string];
 export interface DiskHTTPCacheOptions {
 	userAgent: string;
 	dir: string;
-	assumeUpToDate: boolean;
+	assumeUpToDate?: boolean;
 	encoding: BufferEncoding;
 }
 

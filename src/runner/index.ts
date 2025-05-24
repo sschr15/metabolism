@@ -14,6 +14,7 @@ export interface RunnerOptions {
 	userAgent: string;
 	cacheDir: string;
 	outputDir: string;
+	assumeUpToDate: boolean;
 }
 
 export async function prepare(providers: Set<Provider>, options: RunnerOptions): Promise<void> {
