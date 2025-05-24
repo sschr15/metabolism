@@ -93,7 +93,7 @@ export const PistonVersion = z.object({
 		component: z.string(),
 		majorVersion: z.number(),
 	}).optional(),
-	libraries: z.array(PistonLibrary).optional(),
+	libraries: z.array(PistonLibrary),
 	logging: z.object({
 		client: z.object({
 			argument: z.string(),

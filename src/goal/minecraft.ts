@@ -29,7 +29,7 @@ export default defineGoal({
 			},
 			libraries: (
 				input.libraries
-					?.map(x => ({ // strip path
+					.map(x => ({ // strip path
 						...x,
 						downloads: x.downloads ? {
 							artifact: x.downloads.artifact

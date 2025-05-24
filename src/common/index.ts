@@ -5,7 +5,7 @@ export function throwError(error: Error | string): never {
 		throw error;
 }
 
-export function isEmpty(obj: {} | undefined | null) {
+export function isEmpty(obj: {} | undefined | null): boolean {
 	for (const key in obj)
 		if (typeof obj !== "object" || Object.hasOwn(obj, key))
 			return false;
@@ -22,13 +22,20 @@ export function mapObjectValues<I, O>(obj: { [s: string]: I; }, callback: (value
 	return mapObjectEntries(obj, ([key, value]) => [key, callback(value)]);
 }
 
-export function pushTo<TKey, TItem>(map: Map<TKey, TItem[]>, key: TKey, value: TItem) {
-	let array = map.get(key);
+// based on Java
+export function computeIfAbsent<TKey, TValue extends {}>(map: Map<TKey, TValue>, key: TKey, generator: (key: TKey) => TValue): TValue {
+	let result = map.get(key);
 
-	if (array === undefined) {
-		array = [];
-		map.set(key, array);
+	if (result === undefined) {
+		result = generator(key);
+		map.set(key, result);
 	}
 
-	array.push(value);
+	return result;
+}
+
+export function pushTo<TKey, TItem>(map: Map<TKey, TItem[]>, key: TKey, value: TItem): TItem[] {
+	const result = computeIfAbsent(map, key, () => []);
+	result.push(value);
+	return result;
 }
