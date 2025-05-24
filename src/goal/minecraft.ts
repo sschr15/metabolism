@@ -1,11 +1,11 @@
 import { mapObjectValues, throwError } from "#common/index.ts";
-import pistonVersionManifest from "#provider/pistonMeta/index.ts";
+import pistonMetaGameVersions from "#provider/pistonMetaGameVersions.ts";
 import { defineGoal, type VersionFileOutput } from "#types/goal.ts";
 
 export default defineGoal({
 	id: "net.minecraft",
 	name: "Minecraft",
-	provider: pistonVersionManifest,
+	provider: pistonMetaGameVersions,
 
 	generate(data): VersionFileOutput[] {
 		return data.map(input => ({
