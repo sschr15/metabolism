@@ -1,47 +1,65 @@
+import { pushTo } from "#common/index.ts";
 import { moduleLogger } from "#logger.ts";
 import { type Goal } from "#types/goal.ts";
 import type { Provider } from "#types/provider.ts";
 import type { VersionFile } from "#types/versionFile.ts";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
-import path, { relative } from "node:path";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { DiskHTTPCache } from "./diskHTTPCache.ts";
+import { GOALS } from "./registry.ts";
 
 const logger = moduleLogger();
-
-export const ALL_GOALS = await importGoals();
 
 export interface RunnerOptions {
 	userAgent: string;
 	cacheDir: string;
 	outputDir: string;
-	assumeUpToDate: boolean;
 }
 
-export async function runAll(goals: Goal[], options: RunnerOptions): Promise<void> {
-	const startTime = Date.now();
+export async function prepare(providers: Set<Provider>, options: RunnerOptions): Promise<void> {
+	await run(providers, new Map, options);
+}
 
+export async function sync(providers: Set<Provider>, options: RunnerOptions): Promise<void> {
+	const dependents: Map<Provider, Goal[]> = new Map;
+
+	for (const goal of GOALS.values()) {
+		if (!providers.has(goal.provider))
+			continue;
+
+		pushTo(dependents, goal.provider, goal);
+	}
+
+	await run(providers, dependents, options);
+}
+
+export async function build(goals: Iterable<Goal>, options: RunnerOptions) {
 	const providers: Set<Provider> = new Set;
 	const dependents: Map<Provider, Goal[]> = new Map;
 
 	for (const goal of goals) {
 		providers.add(goal.provider);
-
-		let providerDependents = dependents.get(goal.provider);
-
-		if (!providerDependents) {
-			providerDependents = [];
-			dependents.set(goal.provider, providerDependents);
-		}
-
-		providerDependents.push(goal);
+		pushTo(dependents, goal.provider, goal);
 	}
+
+	await run(providers, dependents, options);
+}
+
+async function run(providers: Set<Provider>, dependents: Map<Provider, Goal[]>, options: RunnerOptions): Promise<void> {
+	const startTime = Date.now();
+
+	let goalCount = 0;
 
 	await Promise.all(providers.values().map(async provider => {
 		const data = await runProvider(provider, options);
 
 		logger.info(`Got data from provider '${provider.id}'!`);
 
-		return await Promise.all(dependents.get(provider)!.map(async goal => {
+		const providerDependents = dependents.get(provider) ?? [];
+
+		return await Promise.all(providerDependents.map(async goal => {
+			++goalCount;
+
 			await runGoal(goal, data, options);
 			logger.info(`Done goal '${goal.id}'!`);
 		}));
@@ -50,7 +68,9 @@ export async function runAll(goals: Goal[], options: RunnerOptions): Promise<voi
 	const elapsedTime = Date.now() - startTime;
 	const formattedTime = elapsedTime < 1000 ? elapsedTime + "ms" : (elapsedTime / 1000) + "s";
 
-	logger.info(`Done all ${goals.length} goals (${formattedTime})!`);
+	logger.info({ providerCount: providers.size, goalCount }, "Summary");
+
+	logger.info(`Done in ${formattedTime}!`);
 }
 
 async function runProvider(provider: Provider, options: RunnerOptions): Promise<unknown> {
@@ -78,28 +98,4 @@ async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promi
 
 		logger.debug(`Wrote '${outputFile}'`);
 	}));
-}
-
-async function importGoals(): Promise<Goal[]> {
-	const result: Goal[] = [];
-	const entries = await readdir(path.join(import.meta.dirname, "..", "goal"), { withFileTypes: true });
-
-	for (const entry of entries) {
-		if (!entry.isDirectory() && !entry.name.endsWith(".ts"))
-			continue;
-
-		let importPath = path.join(entry.parentPath, entry.name);
-
-		if (entry.isDirectory())
-			importPath = path.join(importPath, "index.ts");
-
-		const goal = await import(importPath).then(module => module.default);
-
-		if (typeof goal.generate !== "function")
-			throw new Error(`Expected \`export default exportGoal\` for '${relative(".", importPath)}'!`);
-
-		result.push(goal);
-	}
-
-	return result;
 }

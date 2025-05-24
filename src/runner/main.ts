@@ -1,58 +1,65 @@
 import { default as packageJSON } from "#project/package.json" with { type: "json" };
-import { chalkStderr as format } from "chalk";
-import { ALL_GOALS, runAll } from "./index.ts";
-import { friendlyParseArgs } from "./util/args.ts";
+import type { Goal } from "#types/goal.ts";
+import type { Provider } from "#types/provider.ts";
+import { Command, InvalidArgumentError } from "commander";
+import { build, prepare, sync } from "./index.ts";
+import { GOALS, PROVIDERS } from "./registry.ts";
 
-const args = friendlyParseArgs({
-	args: process.argv.slice(2),
-	options: {
-		userAgent: {
-			type: "string",
-			short: "u",
-			description: "Override the User-Agent header",
-			default: "PrismLauncherMeta/" + packageJSON.version,
-		},
-		cacheDir: {
-			type: "string",
-			short: "c",
-			description: "Set the cache directory",
-			default: "./run/cache",
-		},
-		outputDir: {
-			type: "string",
-			short: "o",
-			description: "Set the output directory.",
-			default: "./run/output",
-		},
-		assumeUpToDate: {
-			type: "boolean",
-			short: "s",
-			description: "Assume cache is up-to-date",
-			default: false,
-		},
-		help: {
-			type: "boolean",
-			short: "h",
-			description: "Show this help message!",
-			default: process.argv.length === 2,
-		}
-	},
-	allowPositionals: true,
-	positionalUsage: "<goal(s)>",
-	extraText: format.bold.underline("Goals") + `\n${format.bold(["all", ...ALL_GOALS.map(goal => goal.id)].join(", "))}`
-});
+const command = new Command("pnpm start")
+	.description("Metabolism - Prism Launcher Metadata Generator")
+	.option("-u, --user-agent <value>", "set the User-Agent header", "PrismLauncherMeta/" + packageJSON.version)
+	.option("-o, --output-dir <path>", "set the output directory", "./run/output")
+	.option("-c, --cache-dir <path>", "the cache directory", "./run/cache")
+	.version(packageJSON.version)
+	.helpCommand(false)
+	.helpOption(false);
 
-const goalSet = new Set(args.positionals);
+command.addHelpText("after", `
+Providers:
+  ${[...PROVIDERS.values()].map(provider => provider.id).sort().join("\n")}
 
-if (goalSet.delete("all")) {
-	var targetGoals = ALL_GOALS;
-	goalSet.clear();
-} else
-	var targetGoals = ALL_GOALS.filter(goal => goalSet.delete(goal.id));
+Goals:
+  ${[...GOALS.values()].map(goal => goal.id).sort().join("\n")}`);
 
-if (goalSet.size !== 0) {
-	console.error(format.red.bold("invalid goals: ") + [...goalSet].join(","));
-	process.exit(1);
+command.command("prepare").alias("p")
+	.argument("<providers...>", "", parseProviders)
+	.description("run specified providers without running any goals")
+	.action((providers, _, command) => prepare(providers, command.optsWithGlobals()));
+
+command.command("sync").alias("s")
+	.argument("<providers...>", "", parseProviders)
+	.description("run specified providers and their dependent goals")
+	.action((providers, _, command) => sync(providers, command.optsWithGlobals()));
+
+command.command("build").alias("b")
+	.argument("<goals...>", "", parseGoals)
+	.description("run specified goals and their dependencies")
+	.action((goals, _, command) => build(goals, command.optsWithGlobals()));
+
+command.command("all").alias("a")
+	.description("run everything")
+	.action((_, command) => build(GOALS.values(), command.optsWithGlobals()));
+
+command.parse();
+
+function parseProviders(id: string, result: Set<Provider> = new Set) {
+	const provider = PROVIDERS.get(id);
+
+	if (!provider)
+		throw new InvalidArgumentError("");
+
+	result.add(provider);
+
+	return result;
 }
 
-await runAll(targetGoals, args.values);
+function parseGoals(id: string, result: Set<Goal> = new Set) {
+	const goal = GOALS.get(id);
+
+	if (!goal)
+		throw new InvalidArgumentError("");
+
+	result.add(goal);
+
+	return result;
+}

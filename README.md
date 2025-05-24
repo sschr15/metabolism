@@ -1,20 +1,33 @@
 # Metabolism
-
-Scripts to generate Prism Launcher metadata based on external sources - [TypeScript rewrite](https://gist.github.com/TheKodeToad/b36761965b05ea1e62b8d717d7aa3c13).
+Scripts to generate Prism Launcher metadata based on external sources - TypeScript rewrite.
 
 ## Usage
-Because football is cool, this project uses terms named after it.
+First, run `pnpm install`.
+To run `pnpm start` (Node.JS) or `pnpm startBun` (might improve performance).
 
-"Goals" are essentially metadata targets to build.
+There are two key concepts - providers and goals. Providers are metadata sources, and goals are metadata targets.
+For example, the `com.mojang.piston-meta.game-versions` provider provides data to the `net.minecraft` goal.
+Goals always specify a single dependency on a source (for the sake of simplicity).
 
-First, run `install` with your prefered package manager (pnpm is recommended - `pnpm install`).
+Pass nothing to see full usage with a list of providers and goals.
 
-The available scripts are `start` and `startBun` to run with Node.JS and Bun respectively (with pnpm: `pnpm start` or `pnpm startBun`).
+Available commands:
 
-Pass no arguments to see a list of options and goals.
-To build everything, run with `all`.
-To build a limited set of goals, specify them separated by spaces.
-To download files but not transform them, use `--prepareOnly`.
+### `prepare <provider>...`
+Prepare data from the specified providers.
 
-Bun is also supported - use `pnpm startBun` instead of `pnpm start`. This is recommended for performance if you have it installed.
-Deno *works*, but there's not much reason to use it for this.
+### `sync <provider>...` (recommended)
+`prepare`, then run dependent goals.
+
+### `build <goal>...`
+Runs `prepare` for all dependencies of the specified goals.
+
+### `all`
+Prepare and build everything.
+
+## Why
+
+[The Rust rewrite (mcmeta)](https://github.com/PrismLauncher/mcmeta) has been in the works for over two years - it can continue to coexist as a future alternative - but as of May 2025 something to replace [our MultiMC meta fork](https://github.com/prismLauncher/meta) feels long overdue.
+I (TheKodeToad) chose TypeScript as I am more familiar with it. But the main difference is that this rewrite is less ambition - this only intends to generate metadata in the existing format simply with (hopefully) cleaner code.
+
+Licensing should not be a concern as no code is taken from the original project.

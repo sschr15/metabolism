@@ -3,12 +3,16 @@ import { PistonVersionManifest } from "#common/types/pistonVersionManifest.ts";
 import { HTTPCacheMode } from "#types/httpCache.ts";
 import { defineProvider } from "#types/provider.ts";
 
-
 export default defineProvider({
 	id: "com.mojang.piston-meta.game-versions",
 
 	async provide(http) {
-		const manifest = PistonVersionManifest.parse(await http.fetchJSON("version_manifest_v2.json", "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"));
+		const manifest = PistonVersionManifest.parse(
+			await http.fetchJSON(
+				"version_manifest_v2.json",
+				"https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
+			)
+		);
 
 		return Promise.all(manifest.versions.map(async version => {
 			const json = await http.fetchJSON(

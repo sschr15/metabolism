@@ -21,3 +21,14 @@ export function mapObjectEntries<I, O>(obj: { [s: string]: I; }, callback: (valu
 export function mapObjectValues<I, O>(obj: { [s: string]: I; }, callback: (value: I) => O) {
 	return mapObjectEntries(obj, ([key, value]) => [key, callback(value)]);
 }
+
+export function pushTo<TKey, TItem>(map: Map<TKey, TItem[]>, key: TKey, value: TItem) {
+	let array = map.get(key);
+
+	if (array === undefined) {
+		array = [];
+		map.set(key, array);
+	}
+
+	array.push(value);
+}
