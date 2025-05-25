@@ -1,22 +1,22 @@
-import { PistonVersion } from "#common/types/pistonVersion.ts";
-import { PistonVersionManifest } from "#common/types/pistonVersionManifest.ts";
+import { PistonVersion } from "#common/schema/pistonVersion.ts";
+import { PistonVersionManifest } from "#common/schema/pistonVersionManifest.ts";
 import { HTTPCacheMode } from "#types/httpCache.ts";
 import { defineProvider } from "#types/provider.ts";
 
 export default defineProvider({
-	id: "com.mojang.piston-meta.game-versions",
+	id: "game-versions",
 
 	async provide(http) {
 		const manifest = PistonVersionManifest.parse(
 			await http.fetchJSON(
-				"version_manifest_v2.json",
+				"piston-meta/version_manifest_v2.json",
 				"https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
 			)
 		);
 
 		return Promise.all(manifest.versions.map(async version => {
 			const json = await http.fetchJSON(
-				"versions/" + version.id + ".json",
+				"piston-meta/versions/" + version.id + ".json",
 				version.url,
 				{ mode: HTTPCacheMode.CompareLocalDigest, algorithm: "sha-1", expected: version.sha1 }
 			);

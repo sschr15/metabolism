@@ -20,11 +20,11 @@ function getScriptName(): string {
 
 	let capturedStack: NodeJS.CallSite[];
 
-	const prePatch = Error.prepareStackTrace;
+	const prepareStackTrace = Error.prepareStackTrace;
 
 	Error.prepareStackTrace = (_, stack) => (capturedStack = stack);
-	(new Error).stack;
-	Error.prepareStackTrace = prePatch;
+	new Error().stack;
+	Error.prepareStackTrace = prepareStackTrace;
 
 	return capturedStack![2]!.getFileName()!;
 }

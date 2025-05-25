@@ -11,16 +11,17 @@ const command = new Command("pnpm start")
 	.option("-o, --output-dir <path>", "set the output directory", "./run/output")
 	.option("-c, --cache-dir <path>", "set the cache directory", "./run/cache")
 	.option("-A, --assume-up-to-date", "Always assume cache entries are up-to-date", false)
+	.option("-p, --prettify", "Prettify JSON output", false)
 	.version(packageJSON.version)
 	.helpCommand(false)
 	.helpOption(false);
 
 command.addHelpText("after", `
 Providers:
-  ${[...PROVIDERS.values()].map(provider => provider.id).sort().join("\n")}
+  ${[...PROVIDERS.values()].map(provider => "  " + provider.id).sort().join("\n")}
 
 Goals:
-  ${[...GOALS.values()].map(goal => goal.id).sort().join("\n")}`);
+${[...GOALS.values()].map(goal => "  " + goal.id).sort().join("\n")}`);
 
 command.command("prepare").alias("p")
 	.argument("<providers...>", "", parseProviders)

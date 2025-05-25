@@ -1,4 +1,4 @@
-import type { PistonLibrary } from "#common/types/pistonVersion.ts";
+import { PistonArtifact, PistonLibrary, type PistonAssetIndexRef } from "#common/schema/pistonVersion.ts";
 
 export interface VersionFile {
 	uid: string;
@@ -8,9 +8,13 @@ export interface VersionFile {
 	version: string;
 	releaseTime: string;
 	type?: string;
-	order?: number; // legacy (to keep the JSON as close as possible for diffing)
 
-	"+traits"?: string[];
+	order?: number; // legacy (to keep the JSON as close as possible for diffing)
+	volatile?: boolean;
+	requires?: VersionFileDependency[];
+	conflicts?: VersionFileDependency[];
+
+	"+traits"?: VersionFileTrait[];
 	"+tweakers"?: string[];
 
 	compatibleJavaMajors?: number[];
@@ -21,18 +25,37 @@ export interface VersionFile {
 
 	mainJar?: VersionFileLibrary;
 	libraries?: VersionFileLibrary[];
-	assetIndex?: {
-		id: string;
-		sha1: string;
-		size: number;
-		totalSize: number;
-		url: string;
-	};
+	assetIndex?: PistonAssetIndexRef;
 }
 
-export type VersionFileLibrary = PistonLibrary & {
+export type VersionFileArtifact = Omit<PistonArtifact, "path">;
+
+export type VersionFileLibrary = Omit<PistonLibrary, "name" | "downloads"> & {
+	name: string;
+
+	downloads?: {
+		artifact?: VersionFileArtifact;
+		classifiers?: Record<string, VersionFileArtifact>;
+	};
+
 	"MMC-hint"?: string,
 	"MMC-absoluteUrl"?: string,
 	"MMC-filename"?: string,
 	"MMC-displayname"?: string,
 };
+
+export interface VersionFileDependency {
+	uid: string;
+	equals?: string;
+	suggests?: string;
+}
+
+export enum VersionFileTrait {
+	UseFirstThreadOnMacOS = "FirstThreadOnMacOS",
+	LegacyLaunch = "legacyLaunch",
+	LaunchWithoutApplet = "noapplet",
+	UseOnlineFixes = "legacyServices",
+	SupportsQuickPlaySingleplayer = "feature:is_quick_play_singleplayer",
+	SupportsQuickPlayMultiplayer = "feature:is_quick_play_multiplayer",
+	XRInitial = "XR:Initial", // ??
+}

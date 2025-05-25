@@ -1,5 +1,4 @@
 import { string, z } from "zod/v4";
-import { isEmpty } from "../index.ts";
 
 export const PistonRule = z.object({
 	action: z.enum(["allow", "disallow"]),
@@ -18,17 +17,6 @@ export const PistonRule = z.object({
 	}).optional(),
 });
 
-export function ruleSetAppliesByDefault(rules: PistonRule[]): boolean {
-	if (rules.length === 0)
-		return true;
-
-	const highestPrecedence = rules.findLast(rule =>
-		isEmpty(rule.features) && isEmpty(rule.os)
-	);
-
-	return highestPrecedence?.action === "allow";
-}
-
 export interface PistonRule extends z.output<typeof PistonRule> { }
 
 export const PistonArtifact = z.object({
@@ -40,8 +28,27 @@ export const PistonArtifact = z.object({
 
 export interface PistonArtifact extends z.output<typeof PistonArtifact> { }
 
+export const PistonLibraryName = z.string().transform((name, context) => {
+	const [groupID, artifactID, version, classifier] = name.split(":", 4);
+
+	if (!groupID || !artifactID || !version) {
+		context.addIssue("Required: groupID:artifactID:version");
+		return z.NEVER;
+	}
+
+	return {
+		full: name,
+		groupID,
+		artifactID,
+		version,
+		classifier,
+	};
+});
+
+export interface PistonLibraryName extends z.output<typeof PistonLibraryName> { }
+
 export const PistonLibrary = z.object({
-	name: z.string(),
+	name: PistonLibraryName,
 	url: z.string().optional(),
 
 	downloads: z.object({
@@ -59,6 +66,15 @@ export const PistonLibrary = z.object({
 });
 
 export interface PistonLibrary extends z.output<typeof PistonLibrary> { }
+
+export function parsePistonLibraryName(name: string) {
+	const [groupID, artifactID, version, classifier] = name.split(":", 4);
+
+	if (!groupID || !artifactID || !version)
+		throw new Error(`Malformed library name: '${name}'`);
+
+	return { groupID, artifactID, version, classifier };
+}
 
 export const PistonAssetIndexRef = z.object({
 	id: z.string(),

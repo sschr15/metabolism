@@ -1,6 +1,6 @@
-import { pushTo } from "#common/index.ts";
+import { pushTo } from "#common/maps.ts";
 import { moduleLogger } from "#logger.ts";
-import { type Goal } from "#types/goal.ts";
+import { type Goal, type VersionFileOutput } from "#types/goal.ts";
 import type { Provider } from "#types/provider.ts";
 import type { VersionFile } from "#types/versionFile.ts";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -15,6 +15,7 @@ export interface RunnerOptions {
 	cacheDir: string;
 	outputDir: string;
 	assumeUpToDate: boolean;
+	prettify: boolean;
 }
 
 export async function prepare(providers: Set<Provider>, options: RunnerOptions): Promise<void> {
@@ -86,17 +87,47 @@ async function runProvider(provider: Provider, options: RunnerOptions): Promise<
 }
 
 async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promise<void> {
-	const files = goal.generate(data);
+	const outputs = goal.generate(data);
 	const outputDir = path.join(options.outputDir, goal.id);
 
 	await mkdir(outputDir, { recursive: true });
 
-	await Promise.all(files.map(async file => {
-		const outputFile = path.join(outputDir, file.version + ".json");
-		const outputContent = JSON.stringify({ uid: goal.id, name: goal.name, formatVersion: 1, ...file } satisfies VersionFile);
+	await Promise.all(outputs.map(async output => {
+		const outputFile = path.join(outputDir, output.version + ".json");
+		const outputContent = dumpOutput(goal, output, options.prettify);
 
 		await writeFile(outputFile, outputContent);
 
 		logger.debug(`Wrote '${outputFile}'`);
 	}));
+}
+
+function dumpOutput(goal: Goal, output: VersionFileOutput, pretty: boolean): string {
+	const file: VersionFile = {
+		uid: goal.id,
+		name: goal.name,
+		formatVersion: 1,
+		...output
+	};
+
+	// trim
+	if (file.requires?.length === 0)
+		delete file.requires;
+
+	if (file["+traits"]?.length === 0)
+		delete file["+traits"];
+
+	if (file["+tweakers"]?.length === 0)
+		delete file["+tweakers"];
+
+	if (file.compatibleJavaMajors?.length === 0)
+		delete file.compatibleJavaMajors;
+
+	if (file["+jvmArgs"]?.length === 0)
+		delete file["+jvmArgs"];
+
+	if (file.libraries?.length === 0)
+		delete file.libraries;
+
+	return JSON.stringify(file, undefined, pretty ? 2 : undefined);
 }
