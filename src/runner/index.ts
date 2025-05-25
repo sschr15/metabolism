@@ -15,7 +15,7 @@ export interface RunnerOptions {
 	cacheDir: string;
 	outputDir: string;
 	assumeUpToDate: boolean;
-	prettify: boolean;
+	minify: boolean;
 }
 
 export async function prepare(providers: Set<Provider>, options: RunnerOptions): Promise<void> {
@@ -94,7 +94,7 @@ async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promi
 
 	await Promise.all(outputs.map(async output => {
 		const outputFile = path.join(outputDir, output.version + ".json");
-		const outputContent = dumpOutput(goal, output, options.prettify);
+		const outputContent = dumpOutput(goal, output, !options.minify);
 
 		await writeFile(outputFile, outputContent);
 
