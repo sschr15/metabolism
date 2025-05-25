@@ -2,7 +2,7 @@ import { moduleLogger } from "#logger.ts";
 import { HTTPCacheMode, type HTTPCache, type HTTPCacheStrategy } from "#types/httpCache.ts";
 import { Buffer } from 'node:buffer';
 import { mkdir, writeFile } from "node:fs/promises";
-import path, { dirname } from "node:path";
+import path, { dirname, normalize } from "node:path";
 import type { Logger } from "pino";
 import z, { ZodError } from "zod/v4";
 import { deleteFileIfExists, readFileIfExists } from "./util/fs.ts";
@@ -31,9 +31,13 @@ export class DiskHTTPCache implements HTTPCache {
 	private _logger: Logger;
 
 	constructor(options: DiskHTTPCacheOptions) {
-		this._options = options;
+		this._options = {
+			...options,
+			dir: normalize(options.dir + path.sep)
+		};
+
 		this._lockedKeys = new Set;
-		this._logger = logger.child({ dir: options.dir });
+		this._logger = logger.child({ dir: this._options.dir });
 	}
 
 	private _lock(key: string) {
@@ -49,7 +53,15 @@ export class DiskHTTPCache implements HTTPCache {
 	}
 
 	private _resolvePath(key: string) {
-		return path.join(this._options.dir, key); // TODO: not very safe
+		const result = path.join(this._options.dir, key);
+
+		if (result.includes("\0"))
+			throw new Error("Key contains null bytes");
+
+		if (!result.startsWith(this._options.dir))
+			throw new Error(`Key '${key}' escapes directory`);
+
+		return result;
 	}
 
 	private _resolveEntryPath(value: string) {

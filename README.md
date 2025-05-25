@@ -1,8 +1,6 @@
 # Metabolism
 Scripts to generate Prism Launcher metadata based on external sources - TypeScript rewrite.
 
-TODO: reminder to self to fix that vulnerability :)
-
 ## Usage
 First, run `pnpm install`.
 To run `pnpm start` (Node.JS) or `pnpm startBun` (might improve performance).
