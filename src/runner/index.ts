@@ -101,6 +101,7 @@ async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promi
 		if (outputFile.includes("\0"))
 			throw new Error("Version contains null bytes");
 
+		// should never happen - swiss cheese
 		if (!outputFile.startsWith(outputDir))
 			throw new Error(`Version '${output.version}' escapes output directory`);
 
