@@ -122,6 +122,7 @@ export const PistonVersion = z.object({
 	releaseTime: z.string(),
 	time: z.string(),
 	type: z.string(),
+	complianceLevel: z.number().optional(),
 });
 
 export interface PistonVersion extends z.output<typeof PistonVersion> { }

@@ -1,5 +1,5 @@
 import { throwError } from "#common/index.ts";
-import type { PistonLibrary, PistonVersion } from "#common/schema/pistonVersion.ts";
+import type { PistonArgument, PistonLibrary, PistonVersion } from "#common/schema/pistonVersion.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3, ruleSetAppliesByDefault, transformPistonLibrary } from "#common/transformation/pistonVersion.ts";
 import pistonMetaGameVersions from "#provider/gameVersions.ts";
 import { defineGoal, type VersionFileOutput } from "#types/goal.ts";
@@ -18,6 +18,9 @@ function transformVersion(version: PistonVersion): VersionFileOutput {
 	const traits: VersionFileTrait[] = [];
 	let mainClass: string | undefined = version.mainClass;
 
+	if (version.complianceLevel === 1)
+		traits.push(VersionFileTrait.XRInitial);
+
 	let libraries = version.libraries;
 
 	libraries = libraries.filter(x => !processLWJGL(x, requires, traits));
@@ -31,6 +34,20 @@ function transformVersion(version: PistonVersion): VersionFileOutput {
 
 		mainClass = undefined;
 		traits.push(VersionFileTrait.LegacyLaunch);
+	}
+
+	if (version.arguments?.game) {
+		const featureObjects = version.arguments.game
+			.filter(x => typeof x === "object")
+			.flatMap(x => x.rules)
+			.filter(x => x.features)
+			.map(x => x.features);
+
+		if (featureObjects.some(x => x?.is_quick_play_singleplayer))
+			traits.push(VersionFileTrait.QuickPlaySingleplayerAware);
+
+		if (featureObjects.some(x => x?.is_quick_play_multiplayer))
+			traits.push(VersionFileTrait.QuickPlayMultiplayerAware);
 	}
 
 	return {
@@ -47,7 +64,7 @@ function transformVersion(version: PistonVersion): VersionFileOutput {
 		compatibleJavaName: version.javaVersion?.component,
 		mainClass: version.mainClass,
 		minecraftArguments: version.minecraftArguments
-			?? version?.arguments?.game?.filter(x => typeof x === "string").join(" ")
+			?? (version.arguments?.game ? transformNewArgs(version.arguments.game) : undefined)
 			?? throwError("Neither minecraftArguments nor arguments present"),
 
 		mainJar: {
@@ -58,7 +75,6 @@ function transformVersion(version: PistonVersion): VersionFileOutput {
 		libraries: libraries.map(transformPistonLibrary),
 	};
 }
-
 
 function processLWJGL(lib: PistonLibrary, requires: VersionFileDependency[], traits: VersionFileTrait[]) {
 	if (isLWJGL2Dependency(lib.name))
@@ -89,4 +105,57 @@ function processLWJGL(lib: PistonLibrary, requires: VersionFileDependency[], tra
 	}
 
 	return false;
+}
+
+const ARG_REF_PATTERN = /\$\{(\w+)\}/g;
+const KNOWN_ARG_REFS = [
+	"assets_index_name", "assets_root", "auth_access_token", "auth_player_name", "auth_session",
+	"auth_uuid", "game_assets", "game_directory", "profile_name", "user_properties",
+	"user_type", "version_name", "version_type"
+];
+
+// transform new arguments to legacy arguments because we're *still* using them :D
+// NOTE: this might break in edge cases - but it's very unlikely
+function transformNewArgs(args: PistonArgument[]): string {
+	const result = [...flattenArgs(args)];
+
+	for (let i = result.length - 1; i >= 0; --i) {
+		const arg = result[i]!;
+		const prevArg = result[i - 1];
+
+		const refs = [...arg.matchAll(ARG_REF_PATTERN)].map(match => match[1]!);
+
+		if (refs.every(ref => KNOWN_ARG_REFS.includes(ref)))
+			continue;
+
+		// if we have unknown references, remove them
+		result.splice(i, 1);
+
+		if (arg.startsWith("-"))
+			continue;
+
+		// if the previous argument expects a value, remove it too
+		if (prevArg?.startsWith("-") && !prevArg.includes("=")) {
+			result.splice(i - 1, 1);
+			--i;
+		}
+	}
+
+	return result.join(" ");
+}
+
+function* flattenArgs(args: PistonArgument[]): Generator<string> {
+	for (const arg of args) {
+		if (typeof arg === "string")
+			yield arg;
+		else {
+			if (arg.rules && !ruleSetAppliesByDefault(arg.rules))
+				continue;
+
+			if (typeof arg.value === "string")
+				yield arg.value;
+			else
+				yield* arg.value;
+		}
+	}
 }

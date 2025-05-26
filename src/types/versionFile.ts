@@ -55,7 +55,7 @@ export enum VersionFileTrait {
 	LegacyLaunch = "legacyLaunch",
 	LaunchWithoutApplet = "noapplet",
 	UseOnlineFixes = "legacyServices",
-	SupportsQuickPlaySingleplayer = "feature:is_quick_play_singleplayer",
-	SupportsQuickPlayMultiplayer = "feature:is_quick_play_multiplayer",
+	QuickPlaySingleplayerAware = "feature:is_quick_play_singleplayer",
+	QuickPlayMultiplayerAware = "feature:is_quick_play_multiplayer",
 	XRInitial = "XR:Initial", // ??
 }
