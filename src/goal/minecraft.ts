@@ -40,13 +40,13 @@ function transformVersion(version: PistonVersion): VersionFileOutput {
 		const featureObjects = version.arguments.game
 			.filter(x => typeof x === "object")
 			.flatMap(x => x.rules)
-			.filter(x => x.features)
-			.map(x => x.features);
+			.map(x => x.features)
+			.filter(x => typeof x === "object");
 
-		if (featureObjects.some(x => x?.is_quick_play_singleplayer))
+		if (featureObjects.some(x => x.is_quick_play_singleplayer))
 			traits.push(VersionFileTrait.QuickPlaySingleplayerAware);
 
-		if (featureObjects.some(x => x?.is_quick_play_multiplayer))
+		if (featureObjects.some(x => x.is_quick_play_multiplayer))
 			traits.push(VersionFileTrait.QuickPlayMultiplayerAware);
 	}
 
