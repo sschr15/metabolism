@@ -88,12 +88,22 @@ async function runProvider(provider: Provider, options: RunnerOptions): Promise<
 
 async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promise<void> {
 	const outputs = goal.generate(data);
-	const outputDir = path.join(options.outputDir, goal.id);
+	const outputDir = path.join(options.outputDir, goal.id, path.sep);
 
 	await mkdir(outputDir, { recursive: true });
 
 	await Promise.all(outputs.map(async output => {
+		if (output.version.includes("/") || output.version.includes("\\"))
+			throw new Error(`Invalid version: '${output.version}'`);
+
 		const outputFile = path.join(outputDir, output.version + ".json");
+
+		if (outputFile.includes("\0"))
+			throw new Error("Version contains null bytes");
+
+		if (!outputFile.startsWith(outputDir))
+			throw new Error(`Version '${output.version}' escapes output directory`);
+
 		const outputContent = dumpOutput(goal, output, !options.minify);
 
 		await writeFile(outputFile, outputContent);
