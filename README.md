@@ -25,6 +25,24 @@ Runs `prepare` for all dependencies of the specified goals.
 ### `all`
 Prepare and build everything.
 
+## Roadmap
+- ❌ Generate index
+- ❌ Remove old cache and output files
+
+Generation for...
+- ☑️ Minecraft (useable)
+  - missing "texturepacks" and "no-texturepacks" trait
+  - missing "legacyServices" trait
+  - missing "noapplet" trait
+  - missing "old_snapshot" and "experiment" versions
+- ☑️ LWJGL (useable)
+  - missing backported apple sillicon natives
+- ❌ Fabric
+- ❌ NeoForge
+- ❌ Forge
+- ❌ Quilt
+- ❌ LiteLoader
+
 ## Why
 
 [The Rust rewrite (mcmeta)](https://github.com/PrismLauncher/mcmeta) has been in the works for over two years - it can continue to coexist as a future alternative - but as of May 2025 something to replace [our MultiMC meta fork](https://github.com/prismLauncher/meta) feels long overdue.
