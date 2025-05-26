@@ -1,5 +1,5 @@
+import type { VersionFile } from "./format/v1/versionFile.ts";
 import type { Provider } from "./provider.ts";
-import type { VersionFile } from "./versionFile.ts";
 
 export function defineGoal<TProvider extends Provider>(goal: Goal<TProvider>): Goal<TProvider> {
 	return goal;
@@ -11,8 +11,11 @@ export interface Goal<TProvider extends Provider = Provider> {
 	name: string;
 	provider: TProvider;
 
-	generate(data: TProvider extends Provider<infer TData> ? TData : never): VersionFileOutput[];
+	generate(data: TProvider extends Provider<infer TData> ? TData : never): VersionOutput[];
 }
 
-export type VersionFileOutput = Omit<VersionFile, "uid" | "name" | "formatVersion">;
+/**
+ * Omit recommended to set it to <is this version the latest>
+ */
+export type VersionOutput = Omit<VersionFile, "uid" | "name" | "formatVersion"> & { recommended?: boolean; };
 

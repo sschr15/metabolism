@@ -2,8 +2,8 @@ import { throwError } from "#common/index.ts";
 import type { PistonArgument, PistonLibrary, PistonVersion } from "#common/schema/pistonVersion.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3, ruleSetAppliesByDefault, transformPistonLibrary } from "#common/transformation/pistonVersion.ts";
 import pistonMetaGameVersions from "#provider/gameVersions.ts";
-import { defineGoal, type VersionFileOutput } from "#types/goal.ts";
-import { VersionFileTrait, type VersionFileDependency } from "#types/versionFile.ts";
+import { VersionFileTrait, type VersionFileDependency } from "#types/format/v1/versionFile.ts";
+import { defineGoal, type VersionOutput } from "#types/goal.ts";
 
 export default defineGoal({
 	id: "net.minecraft",
@@ -13,7 +13,7 @@ export default defineGoal({
 	generate: data => data.map(transformVersion),
 });
 
-function transformVersion(version: PistonVersion): VersionFileOutput {
+function transformVersion(version: PistonVersion): VersionOutput {
 	const requires: VersionFileDependency[] = [];
 	const traits: VersionFileTrait[] = [];
 	let mainClass: string | undefined = version.mainClass;
@@ -65,7 +65,7 @@ function transformVersion(version: PistonVersion): VersionFileOutput {
 		mainClass: version.mainClass,
 		minecraftArguments: version.minecraftArguments
 			?? (version.arguments?.game ? transformNewArgs(version.arguments.game) : undefined)
-			?? throwError("Neither minecraftArguments nor arguments present"),
+			?? throwError("Neither minecraftArguments nor arguments.game present"),
 
 		mainJar: {
 			name: `com.mojang:minecraft:${version.id}:client`,
@@ -92,7 +92,7 @@ function processLWJGL(lib: PistonLibrary, requires: VersionFileDependency[], tra
 
 		if (existing) {
 			if (existing.suggests !== lib.name.version)
-				throw new Error(`Multiple versions of LWJGL specified! (both ${existing.suggests} and ${lib.name.version} present)`);
+				throw new Error(`Multiple versions of LWJGL specified! (both '${existing.suggests}' and '${lib.name.version}' present)`);
 			else
 				return true;
 		}

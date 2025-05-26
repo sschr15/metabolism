@@ -1,7 +1,7 @@
 import { isEmpty } from "#common/index.ts";
 import { mapObjectValues, omitObjectKeys } from "#common/objects.ts";
 import type { PistonLibrary, PistonLibraryName, PistonRule } from "#common/schema/pistonVersion.ts";
-import type { VersionFileLibrary } from "#types/versionFile.ts";
+import type { VersionFileLibrary } from "#types/format/v1/versionFile.ts";
 
 export function ruleSetAppliesByDefault(rules: PistonRule[]): boolean {
 	if (rules.length === 0)

@@ -57,5 +57,5 @@ export enum VersionFileTrait {
 	UseOnlineFixes = "legacyServices",
 	QuickPlaySingleplayerAware = "feature:is_quick_play_singleplayer",
 	QuickPlayMultiplayerAware = "feature:is_quick_play_multiplayer",
-	XRInitial = "XR:Initial", // ??
+	XRInitial = "XR:Initial", // Uses initial player safety implementation ??? (unused)
 }

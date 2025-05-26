@@ -1,8 +1,8 @@
 import { PistonLibrary, PistonLibraryName, PistonVersion } from "#common/schema/pistonVersion.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3, ruleSetAppliesByDefault, transformPistonLibrary } from "#common/transformation/pistonVersion.ts";
 import pistonMetaGameVersions from "#provider/gameVersions.ts";
-import { defineGoal, type VersionFileOutput } from "#types/goal.ts";
-import type { VersionFileDependency } from "#types/versionFile.ts";
+import type { VersionFileDependency } from "#types/format/v1/versionFile.ts";
+import { defineGoal, type VersionOutput } from "#types/goal.ts";
 
 const lwjgl3 = defineGoal({
 	id: "org.lwjgl3",
@@ -64,7 +64,7 @@ function generate(data: PistonVersion[], conflictUIDs: string[], filter: Version
 	const conflicts: VersionFileDependency[] = conflictUIDs.map(uid => ({ uid }));
 
 	return [
-		...versions.entries().map(([version, [releaseTime, libraries]]): VersionFileOutput => ({
+		...versions.entries().map(([version, [releaseTime, libraries]]): VersionOutput => ({
 			version,
 			releaseTime,
 			type: "release",

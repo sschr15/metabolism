@@ -1,12 +1,15 @@
 import { pushTo } from "#common/maps.ts";
 import { moduleLogger } from "#logger.ts";
-import { type Goal, type VersionFileOutput } from "#types/goal.ts";
+import type { IndexFile } from "#types/format/v1/indexFile.ts";
+import type { PackageIndexFile, PackageIndexFileVersion } from "#types/format/v1/packageIndexFile.ts";
+import type { VersionFile } from "#types/format/v1/versionFile.ts";
+import { type Goal, type VersionOutput } from "#types/goal.ts";
 import type { Provider } from "#types/provider.ts";
-import type { VersionFile } from "#types/versionFile.ts";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { DiskHTTPCache } from "./diskHTTPCache.ts";
 import { GOALS } from "./registry.ts";
+import { digest } from "./util/strings.ts";
 
 const logger = moduleLogger();
 
@@ -50,7 +53,7 @@ export async function build(goals: Iterable<Goal>, options: RunnerOptions) {
 async function run(providers: Set<Provider>, dependents: Map<Provider, Goal[]>, options: RunnerOptions): Promise<void> {
 	const startTime = Date.now();
 
-	let goalCount = 0;
+	const goalResults: [Goal, string][] = [];
 
 	await Promise.all(providers.values().map(async provider => {
 		const data = await runProvider(provider, options);
@@ -60,9 +63,8 @@ async function run(providers: Set<Provider>, dependents: Map<Provider, Goal[]>, 
 		const providerDependents = dependents.get(provider) ?? [];
 
 		return await Promise.all(providerDependents.map(async goal => {
-			++goalCount;
+			goalResults.push([goal, await runGoal(goal, data, options)]);
 
-			await runGoal(goal, data, options);
 			logger.info(`Done goal '${goal.id}'!`);
 		}));
 	}));
@@ -70,7 +72,19 @@ async function run(providers: Set<Provider>, dependents: Map<Provider, Goal[]>, 
 	const elapsedTime = Date.now() - startTime;
 	const formattedTime = elapsedTime < 1000 ? elapsedTime + "ms" : (elapsedTime / 1000) + "s";
 
-	logger.info({ providerCount: providers.size, goalCount }, "Summary");
+	logger.info({ providerCount: providers.size, goalCount: goalResults.length }, "Summary");
+
+	// TODO: placeholder
+	const rootIndex: IndexFile = {
+		formatVersion: 1,
+		packages: goalResults.map(([goal, sha256]) => ({
+			uid: goal.id,
+			name: goal.name,
+			sha256,
+		}))
+	};
+
+	await writeFile(path.join(options.outputDir, "index.json"), JSON.stringify(rootIndex, undefined, 2));
 
 	logger.info(`Done in ${formattedTime}!`);
 }
@@ -86,34 +100,68 @@ async function runProvider(provider: Provider, options: RunnerOptions): Promise<
 	return await provider.provide(http);
 }
 
-async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promise<void> {
+async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promise<string> {
 	const outputs = goal.generate(data);
 	const outputDir = path.join(options.outputDir, goal.id, path.sep);
 
 	await mkdir(outputDir, { recursive: true });
 
-	await Promise.all(outputs.map(async output => {
-		if (output.version.includes("/") || output.version.includes("\\"))
+	const space = options.minify ? 0 : 2;
+
+	const indexVersions = await Promise.all(outputs.map(async (output, i): Promise<PackageIndexFileVersion> => {
+		if (output.version === "index" || output.version.includes("/") || output.version.includes("\\"))
 			throw new Error(`Invalid version: '${output.version}'`);
 
-		const outputFile = path.join(outputDir, output.version + ".json");
+		const outputPath = path.join(outputDir, output.version + ".json");
 
-		if (outputFile.includes("\0"))
+		if (outputPath.includes("\0"))
 			throw new Error("Version contains null bytes");
 
 		// should never happen - swiss cheese
-		if (!outputFile.startsWith(outputDir))
+		if (!outputPath.startsWith(outputDir))
 			throw new Error(`Version '${output.version}' escapes output directory`);
 
-		const outputContent = dumpOutput(goal, output, !options.minify);
+		const versionFile = generateVersionFile(goal, output);
+		const outputData = JSON.stringify(versionFile, undefined, space);
 
-		await writeFile(outputFile, outputContent);
+		await writeFile(outputPath, outputData);
 
-		logger.debug(`Wrote '${outputFile}'`);
+		logger.debug(`Wrote '${outputPath}'`);
+
+		const sha256 = await digest("sha-256", outputData).then(sum => sum.toString("hex"));
+
+		logger.debug(`sha-256 of '${outputPath}' is '${sha256}'`);
+
+		return {
+			version: output.version,
+			recommended: output.recommended ?? i === 0,
+			releaseTime: output.releaseTime,
+			sha256
+		};
 	}));
+
+	const indexFile: PackageIndexFile = {
+		uid: goal.id,
+		name: goal.name,
+		formatVersion: 1,
+		versions: indexVersions
+	};
+
+	const indexPath = path.join(outputDir, "index.json");
+	const indexData = JSON.stringify(indexFile, undefined, 2);
+
+	await writeFile(indexPath, indexData);
+
+	logger.debug(`Wrote '${indexPath}'`);
+
+	const indexSha256 = await digest("sha-256", indexData).then(sum => sum.toString("hex"));
+
+	logger.debug(`sha-256 of '${indexPath}' index is ${indexSha256}`);
+
+	return indexSha256;
 }
 
-function dumpOutput(goal: Goal, output: VersionFileOutput, pretty: boolean): string {
+function generateVersionFile(goal: Goal, { recommended, ...output }: VersionOutput): VersionFile {
 	const file: VersionFile = {
 		uid: goal.id,
 		name: goal.name,
@@ -140,5 +188,5 @@ function dumpOutput(goal: Goal, output: VersionFileOutput, pretty: boolean): str
 	if (file.libraries?.length === 0)
 		delete file.libraries;
 
-	return JSON.stringify(file, undefined, pretty ? 2 : undefined);
+	return file;
 }
