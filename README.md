@@ -6,7 +6,7 @@ First, run `pnpm install`.
 To run `pnpm start` (Node.JS) or `pnpm startBun` (might improve performance).
 
 There are two key concepts - providers and goals. Providers are metadata sources, and goals are metadata targets.
-For example, the `com.mojang.piston-meta.game-versions` provider provides data to the `net.minecraft` goal.
+For example, the `piston-meta` provider provides data to the `net.minecraft` goal.
 Goals always specify a single dependency on a source (for the sake of simplicity).
 
 Pass nothing to see full usage with a list of providers and goals.
