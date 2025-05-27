@@ -1,4 +1,4 @@
-import { throwError } from "#common/index.ts";
+import { isEmpty, throwError } from "#common/index.ts";
 import type { PistonArgument, PistonLibrary, PistonVersion } from "#common/schema/pistonVersion.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3, ruleSetAppliesByDefault, transformPistonLibrary } from "#common/transformation/pistonVersion.ts";
 import pistonMetaGameVersions from "#provider/gameVersions.ts";
@@ -62,7 +62,7 @@ function transformVersion(version: PistonVersion): VersionOutput {
 
 		compatibleJavaMajors: [version?.javaVersion?.majorVersion].filter(x => x !== undefined),
 		compatibleJavaName: version.javaVersion?.component,
-		mainClass: version.mainClass,
+		mainClass,
 		minecraftArguments: version.minecraftArguments
 			?? (version.arguments?.game ? transformNewArgs(version.arguments.game) : undefined)
 			?? throwError("Neither minecraftArguments nor arguments.game present"),
@@ -84,7 +84,11 @@ function processLWJGL(lib: PistonLibrary, requires: VersionFileDependency[], tra
 	const lwjgl3 = isLWJGL3(lib.name);
 
 	if (lwjgl2 || lwjgl3) {
+		// determine version based on non-pltaform-specific libraries in case the version varies
 		if (lib.rules && !ruleSetAppliesByDefault(lib.rules))
+			return true;
+
+		if (lib.natives && !isEmpty(lib.natives))
 			return true;
 
 		const uid = lwjgl3 ? "org.lwjgl3" : "org.lwjgl";

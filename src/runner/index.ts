@@ -108,7 +108,7 @@ async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promi
 
 	const space = options.minify ? 0 : 2;
 
-	const indexVersions = await Promise.all(outputs.map(async (output, i): Promise<PackageIndexFileVersion> => {
+	const indexVersions = await Promise.all(outputs.map(async (output): Promise<PackageIndexFileVersion> => {
 		if (output.version === "index" || output.version.includes("/") || output.version.includes("\\"))
 			throw new Error(`Invalid version: '${output.version}'`);
 
@@ -130,11 +130,12 @@ async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promi
 
 		const sha256 = await digest("sha-256", outputData).then(sum => sum.toString("hex"));
 
-		logger.debug(`sha-256 of '${outputPath}' is '${sha256}'`);
+		logger.debug(`sha-256 of '${outputPath}' is ${sha256}`);
 
 		return {
 			version: output.version,
-			recommended: output.recommended ?? i === 0,
+			type: output.type,
+			recommended: output.recommended ?? false,
 			releaseTime: output.releaseTime,
 			sha256
 		};

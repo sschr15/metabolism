@@ -1,5 +1,6 @@
+import { isEmpty } from "#common/index.ts";
 import { PistonLibrary, PistonLibraryName, PistonVersion } from "#common/schema/pistonVersion.ts";
-import { isLWJGL2, isLWJGL2Dependency, isLWJGL3, ruleSetAppliesByDefault, transformPistonLibrary } from "#common/transformation/pistonVersion.ts";
+import { isLWJGL2, isLWJGL2Dependency, isLWJGL3, transformPistonLibrary } from "#common/transformation/pistonVersion.ts";
 import pistonMetaGameVersions from "#provider/gameVersions.ts";
 import type { VersionFileDependency } from "#types/format/v1/versionFile.ts";
 import { defineGoal, type VersionOutput } from "#types/goal.ts";
@@ -28,7 +29,8 @@ function generate(data: PistonVersion[], conflictUIDs: string[], filter: Version
 
 	for (const version of data) {
 		for (const lib of version.libraries) {
-			if (lib.rules && !ruleSetAppliesByDefault(lib.rules))
+			// non-native and OS specific?
+			if (!lib.name.classifier && lib.rules && !isEmpty(lib.rules))
 				continue;
 
 			if (filter(lib.name)) {
@@ -41,7 +43,11 @@ function generate(data: PistonVersion[], conflictUIDs: string[], filter: Version
 					entry[0] = version.releaseTime; // set to oldest
 
 				const entryLibs = entry[1];
-				const alreadyPresent = entryLibs.some(x => x.name.artifactID === lib.name.artifactID);
+				const alreadyPresent = entryLibs.some(
+					x => x.name.artifactID === lib.name.artifactID
+						&& x.name.classifier === lib.name.classifier
+						&& !!x.natives === !!lib.natives
+				);
 
 				if (alreadyPresent)
 					continue;
