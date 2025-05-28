@@ -1,4 +1,5 @@
 import { string, z } from "zod/v4";
+import { MavenLibraryName } from "../maven.ts";
 
 export const PistonRule = z.object({
 	action: z.enum(["allow", "disallow"]),
@@ -28,27 +29,8 @@ export const PistonArtifact = z.object({
 
 export interface PistonArtifact extends z.output<typeof PistonArtifact> { }
 
-export const PistonLibraryName = z.string().transform((name, context) => {
-	const [groupID, artifactID, version, classifier] = name.split(":", 4);
-
-	if (!groupID || !artifactID || !version) {
-		context.addIssue("Required: groupID:artifactID:version");
-		return z.NEVER;
-	}
-
-	return {
-		full: name,
-		groupID,
-		artifactID,
-		version,
-		classifier,
-	};
-});
-
-export interface PistonLibraryName extends z.output<typeof PistonLibraryName> { }
-
 export const PistonLibrary = z.object({
-	name: PistonLibraryName,
+	name: MavenLibraryName,
 	url: z.string().optional(),
 
 	downloads: z.object({

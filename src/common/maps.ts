@@ -16,4 +16,3 @@ export function pushTo<TKey, TItem>(map: Map<TKey, TItem[]>, key: TKey, value: T
 	result.push(value);
 	return result;
 }
-

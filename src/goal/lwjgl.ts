@@ -1,6 +1,8 @@
 import { isEmpty } from "#common/index.ts";
-import { PistonLibrary, PistonLibraryName, PistonVersion } from "#common/schema/pistonVersion.ts";
-import { isLWJGL2, isLWJGL2Dependency, isLWJGL3, transformPistonLibrary } from "#common/transformation/pistonVersion.ts";
+import type { MavenLibraryName } from "#common/schema/maven.ts";
+import { PistonLibrary, PistonVersion } from "#common/schema/pistonMeta/pistonVersion.ts";
+import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#common/transformation/maven.ts";
+import { transformPistonLibrary } from "#common/transformation/pistonMeta.ts";
 import pistonMetaGameVersions from "#provider/gameVersions.ts";
 import type { VersionFileDependency } from "#types/format/v1/versionFile.ts";
 import { defineGoal, type VersionOutput } from "#types/goal.ts";
@@ -21,7 +23,7 @@ const lwjgl2 = defineGoal({
 	generate: data => generate(data, ["org.lwjgl3"], isLWJGL2, isLWJGL2Dependency)
 });
 
-type VersionNamePredicate = (name: PistonLibraryName) => boolean;
+type VersionNamePredicate = (name: MavenLibraryName) => boolean;
 
 function generate(data: PistonVersion[], conflictUIDs: string[], filter: VersionNamePredicate, filterDep: VersionNamePredicate) {
 	const versions: Map<string, [string, PistonLibrary[]]> = new Map;

@@ -1,9 +1,9 @@
 import { moduleLogger } from "#logger.ts";
-import { HTTPCacheMode, type HTTPCache, type HTTPCacheStrategy } from "#types/httpCache.ts";
+import { HTTPCacheMode, type HTTPCache, type HTTPCacheStrategy, type Response } from "#types/httpCache.ts";
 import { Buffer } from 'node:buffer';
 import { mkdir, writeFile } from "node:fs/promises";
 import path, { dirname } from "node:path";
-import type { Logger } from "pino";
+import { type Logger } from "pino";
 import z, { ZodError } from "zod/v4";
 import { deleteFileIfExists, readFileIfExists } from "./util/fs.ts";
 import { digest } from "./util/strings.ts";
@@ -12,7 +12,7 @@ const logger = moduleLogger();
 
 const CacheEntry = z.object({
 	sha1: z.string().transform(input => Buffer.from(input, "hex") as Buffer),
-	lastModified: z.string().optional(),
+	lastModified: z.coerce.date().optional(),
 });
 
 interface CacheEntry extends z.output<typeof CacheEntry> { }
@@ -101,7 +101,7 @@ export class DiskHTTPCache implements HTTPCache {
 		return [cacheEntry, fileData];
 	}
 
-	private async _put(key: string, { sha1, ...entry }: CacheEntry, value: string): Promise<void> {
+	private async _put(key: string, entry: CacheEntry, value: string): Promise<void> {
 		const path = this._resolvePath(key);
 		const entryPath = this._resolveEntryPath(path);
 
@@ -110,19 +110,10 @@ export class DiskHTTPCache implements HTTPCache {
 			await deleteFileIfExists(entryPath);
 
 		await writeFile(path, value, this._options.encoding);
-		await writeFile(entryPath, JSON.stringify({ sha1: sha1.toString("hex"), ...entry }));
+		await writeFile(entryPath, JSON.stringify({ sha1: entry.sha1.toString("hex"), lastModified: entry.lastModified?.toISOString() }));
 	}
 
-	private async _save(key: string, headers: Headers, body: string): Promise<void> {
-		const newEntry: CacheEntry = {
-			sha1: await digest("sha-1", body),
-			lastModified: headers.get("Last-Modified") ?? undefined
-		};
-
-		await this._put(key, newEntry, body);
-	}
-
-	async fetch(key: string, url: string | URL, contentType: string, strategy: HTTPCacheStrategy = { mode: HTTPCacheMode.IfModifiedSince }): Promise<string> {
+	async fetch(key: string, url: string | URL, contentType: string, strategy: HTTPCacheStrategy = { mode: HTTPCacheMode.IfModifiedSince }): Promise<Response<string>> {
 		this._lock(key);
 
 		try {
@@ -130,9 +121,13 @@ export class DiskHTTPCache implements HTTPCache {
 			const entry = resolvedEntry?.[0] ?? null;
 			const value = resolvedEntry?.[1] ?? null;
 
-			if (this._options.assumeUpToDate && value !== null) {
+			if ((this._options.assumeUpToDate || strategy.mode === HTTPCacheMode.Eternal) && value !== null) {
 				this._logger.debug(`Assuming cache entry '${key}' is up-to-date`);
-				return value;
+
+				return {
+					lastModified: entry?.lastModified ?? null,
+					body: value,
+				};
 			}
 
 			// TODO: this is really bad for perf for some reason
@@ -145,7 +140,11 @@ export class DiskHTTPCache implements HTTPCache {
 
 				if (digestResult.equals(expected)) {
 					this._logger.debug(debugInfo, `Cache entry '${key}' is up-to-date (matching digest)`);
-					return value;
+
+					return {
+						lastModified: entry.lastModified ?? null,
+						body: value,
+					};
 				} else
 					this._logger.debug(debugInfo, `Cache entry '${key}' needs fetch (digest mismatch)'`);
 			}
@@ -158,31 +157,65 @@ export class DiskHTTPCache implements HTTPCache {
 			});
 
 			if (strategy.mode === HTTPCacheMode.IfModifiedSince && entry?.lastModified !== undefined)
-				headers.set("If-Modified-Since", entry.lastModified);
+				headers.set("If-Modified-Since", entry.lastModified.toUTCString());
 
 			const response = await fetch(url, { headers, });
 
 			if (strategy.mode === HTTPCacheMode.IfModifiedSince && response.status === 304 && value !== null) {
 				this._logger.debug(`Cache entry '${key}' is up-to-date (304)`);
-				return value;
+
+				return {
+					lastModified: entry?.lastModified ?? null,
+					body: value,
+				};
 			}
 
 			if (!response.ok || response.status === 204)
 				throw new Error(`Got ${response.status} for '${url}'`);
 
+			const newValue = await response.text();
+
+			const lastModifiedHeader = response.headers.get("Last-Modified");
+			const newLastModified = lastModifiedHeader ? new Date(lastModifiedHeader) : undefined;
+
+			if (newLastModified && isNaN(newLastModified.getTime()))
+				throw new Error(`Invalid Last-Modified header: '${lastModifiedHeader}'`);
+
+			const newEntry: CacheEntry = {
+				sha1: await digest("sha-1", newValue),
+				lastModified: newLastModified,
+			};
+
+			await this._put(key, newEntry, newValue);
+
 			this._logger.debug(`Cache entry '${key}' ${entry === null ? "created" : "updated"} from response`);
 
-			const newValue = await response.text();
-			this._save(key, response.headers, newValue);
-
-			return newValue;
+			return {
+				lastModified: newLastModified ?? null,
+				body: newValue,
+			};
 		} finally {
 			this._unlock(key);
 		}
 	}
 
-	async fetchJSON(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<unknown> {
+	async fetchJSON(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<Response<unknown>> {
 		const result = await this.fetch(key, url, "application/json", strategy);
-		return JSON.parse(result);
+		return {
+			...result,
+			body: JSON.parse(result.body)
+		};
+	}
+
+	async fetchContent(key: string, url: string | URL, contentType: string, strategy?: HTTPCacheStrategy): Promise<string> {
+		const response = await this.fetch(key, url, contentType, strategy);
+
+		return response.body;
+	}
+
+	async fetchJSONContent(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<unknown> {
+		const response = await this.fetchJSON(key, url, strategy);
+
+		return response.body;
 	}
 }

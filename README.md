@@ -37,7 +37,8 @@ Generation for...
   - missing "old_snapshot" and "experiment" versions
 - ☑️ LWJGL (useable)
   - missing backported apple sillicon natives
-- ❌ Fabric
+- 🚧 Fabric
+  - missing intermediary
 - ❌ NeoForge
 - ❌ Forge
 - ❌ Quilt

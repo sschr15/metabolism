@@ -7,7 +7,7 @@ export interface HTTPCache {
 	 * @param strategy Caching strategy - defaults to IfModifiedSince
 	 * @returns body text
 	 */
-	fetch(key: string, url: string | URL, contentType: string, strategy?: HTTPCacheStrategy): Promise<string>;
+	fetchContent(key: string, url: string | URL, contentType: string, strategy?: HTTPCacheStrategy): Promise<string>;
 
 	/**
 	 * Fetch JSON over HTTP and store for later use or reuse stored data if it is up-to-date.
@@ -16,7 +16,16 @@ export interface HTTPCache {
 	 * @param url URL to GET
 	 * @param strategy Caching strategy - defaults to IfModifiedSince
 	 */
-	fetchJSON(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<unknown>;
+	fetchJSONContent(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<unknown>;
+
+	fetch(key: string, url: string | URL, contentType: string, strategy?: HTTPCacheStrategy): Promise<Response<string>>;
+
+	fetchJSON(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<Response<unknown>>;
+}
+
+export interface Response<T> {
+	lastModified: Date | null;
+	body: T;
 }
 
 export const enum HTTPCacheMode {
@@ -31,12 +40,12 @@ export const enum HTTPCacheMode {
 	 */
 	CompareLocalDigest,
 	/**
-	 * Request the full body every time.
+	 * Cache forever - never invalidate.
 	 */
-	IgnoreCache,
+	Eternal,
 }
 
-export type HTTPCacheStrategy = { mode: HTTPCacheMode.IfModifiedSince | HTTPCacheMode.IgnoreCache; }
+export type HTTPCacheStrategy = { mode: HTTPCacheMode.IfModifiedSince | HTTPCacheMode.Eternal; }
 	| { mode: HTTPCacheMode.CompareLocalDigest; algorithm: DigestAlgorithm; expected: string | Buffer; };
 
 export type DigestAlgorithm = "sha-1" | "sha-256" | "sha-384" | "sha-512";
