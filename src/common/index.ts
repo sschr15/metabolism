@@ -4,11 +4,3 @@ export function throwError(error: Error | string): never {
 	else
 		throw error;
 }
-
-export function isEmpty(obj: {} | undefined | null): boolean {
-	for (const key in obj)
-		if (typeof obj !== "object" || Object.hasOwn(obj, key))
-			return false;
-
-	return true;
-}

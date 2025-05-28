@@ -1,4 +1,3 @@
-import { isEmpty } from "#common/index.ts";
 import type { MavenLibraryName } from "#common/schema/maven.ts";
 import { PistonLibrary, PistonVersion } from "#common/schema/pistonMeta/pistonVersion.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#common/transformation/maven.ts";
@@ -6,6 +5,7 @@ import { transformPistonLibrary } from "#common/transformation/pistonMeta.ts";
 import pistonMetaGameVersions from "#provider/gameVersions.ts";
 import type { VersionFileDependency } from "#types/format/v1/versionFile.ts";
 import { defineGoal, type VersionOutput } from "#types/goal.ts";
+import { isEmpty } from "es-toolkit/compat";
 
 const lwjgl3 = defineGoal({
 	id: "org.lwjgl3",
