@@ -9,7 +9,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { DiskHTTPCache } from "./diskHTTPCache.ts";
 import { GOALS } from "./registry.ts";
-import { digest } from "./util/strings.ts";
+import { digest } from "./util.ts";
 
 const logger = moduleLogger();
 

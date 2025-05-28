@@ -1,4 +1,4 @@
-import { readFile, rm } from "node:fs/promises";
+import { readFile, rm } from "fs/promises";
 
 export async function readFileIfExists(path: string, encoding: BufferEncoding): Promise<string | null> {
 	try {
@@ -24,7 +24,7 @@ export async function deleteFileIfExists(path: string): Promise<boolean> {
 	}
 }
 
-function isENOENT(error: unknown) {
+export function isENOENT(error: unknown) {
 	if (!(error instanceof Error && "code" in error && typeof "code" === "string"))
 		return false;
 
@@ -32,4 +32,8 @@ function isENOENT(error: unknown) {
 		return false;
 
 	return true;
+}
+
+export async function digest(algorithm: string, data: string) {
+	return Buffer.from(await crypto.subtle.digest(algorithm, Buffer.from(data)));
 }
