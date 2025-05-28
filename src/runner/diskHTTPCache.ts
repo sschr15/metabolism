@@ -1,14 +1,17 @@
 import { moduleLogger } from "#logger.ts";
 import { HTTPCacheMode, type HTTPCache, type HTTPCacheStrategy, type Response } from "#types/httpCache.ts";
+import { retry } from "es-toolkit";
 import { Buffer } from 'node:buffer';
 import { mkdir, writeFile } from "node:fs/promises";
 import path, { dirname } from "node:path";
+import pLimit from "p-limit";
 import { type Logger } from "pino";
 import z, { ZodError } from "zod/v4";
 import { deleteFileIfExists, readFileIfExists } from "./util/fs.ts";
 import { digest } from "./util/strings.ts";
 
 const logger = moduleLogger();
+const limit = pLimit(16); // TODO: don't hardcode
 
 const CacheEntry = z.object({
 	sha1: z.string().transform(input => Buffer.from(input, "hex") as Buffer),
@@ -159,7 +162,10 @@ export class DiskHTTPCache implements HTTPCache {
 			if (strategy.mode === HTTPCacheMode.IfModifiedSince && entry?.lastModified !== undefined)
 				headers.set("If-Modified-Since", entry.lastModified.toUTCString());
 
-			const response = await fetch(url, { headers, });
+			const response = await retry(
+				() => limit(() => fetch(url, { headers, })),
+				{ delay: attempts => 500 * (2 ** attempts), retries: 5 }
+			);
 
 			if (strategy.mode === HTTPCacheMode.IfModifiedSince && response.status === 304 && value !== null) {
 				this._logger.debug(`Cache entry '${key}' is up-to-date (304)`);
