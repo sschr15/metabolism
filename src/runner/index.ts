@@ -1,4 +1,4 @@
-import { pushTo } from "#common/maps.ts";
+import { setIfAbsent } from "#common/index.ts";
 import { moduleLogger } from "#logger.ts";
 import type { IndexFile } from "#types/format/v1/indexFile.ts";
 import type { PackageIndexFile, PackageIndexFileVersion } from "#types/format/v1/packageIndexFile.ts";
@@ -32,7 +32,7 @@ export async function sync(providers: Set<Provider>, options: RunnerOptions): Pr
 		if (!providers.has(goal.provider))
 			continue;
 
-		pushTo(dependents, goal.provider, goal);
+		setIfAbsent(dependents, goal.provider, []).push(goal);
 	}
 
 	await run(providers, dependents, options);
@@ -44,7 +44,7 @@ export async function build(goals: Iterable<Goal>, options: RunnerOptions) {
 
 	for (const goal of goals) {
 		providers.add(goal.provider);
-		pushTo(dependents, goal.provider, goal);
+		setIfAbsent(dependents, goal.provider, []).push(goal);
 	}
 
 	await run(providers, dependents, options);
