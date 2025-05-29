@@ -1,4 +1,4 @@
-import { PistonArtifact, PistonLibrary, type PistonAssetIndexRef } from "#common/schema/pistonMeta/pistonVersion.ts";
+import { PistonArtifact, PistonLibrary, type PistonAssetIndexRef } from "#types/pistonMeta/pistonVersion.ts";
 
 export interface VersionFile {
 	uid: string;

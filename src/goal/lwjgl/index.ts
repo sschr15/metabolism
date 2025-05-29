@@ -1,10 +1,10 @@
-import type { MavenLibraryName } from "#common/schema/maven.ts";
-import { PistonLibrary, PistonVersion } from "#common/schema/pistonMeta/pistonVersion.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#common/transformation/maven.ts";
 import { isPlatformLibrary, transformPistonLibrary } from "#common/transformation/pistonMeta.ts";
 import pistonMetaGameVersions from "#provider/gameVersions.ts";
 import type { VersionFileDependency } from "#types/format/v1/versionFile.ts";
 import { defineGoal, type VersionOutput } from "#types/goal.ts";
+import type { MavenLibraryName } from "#types/mavenLibraryName.ts";
+import { PistonLibrary, PistonVersion } from "#types/pistonMeta/pistonVersion.ts";
 import { omit } from "es-toolkit";
 import { isEmpty } from "es-toolkit/compat";
 
@@ -125,7 +125,7 @@ function splitClassifiers(library: PistonLibrary) {
 		return [library];
 
 	return [
-		{ ...omit(library, ["natives"]), downloads: { artifact: library.downloads.artifact } },
+		{ ...omit(library, ["natives", "extract"]), downloads: { artifact: library.downloads.artifact } },
 		{ ...library, downloads: { classifiers: library.downloads.classifiers } }
 	];
 }

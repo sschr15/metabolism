@@ -1,6 +1,6 @@
-import { PistonVersion } from "#common/schema/pistonMeta/pistonVersion.ts";
-import { PistonVersionManifest } from "#common/schema/pistonMeta/pistonVersionManifest.ts";
 import { HTTPCacheMode } from "#types/httpCache.ts";
+import { PistonVersion } from "#types/pistonMeta/pistonVersion.ts";
+import { PistonVersionManifest } from "#types/pistonMeta/pistonVersionManifest.ts";
 import { defineProvider } from "#types/provider.ts";
 
 export default defineProvider({

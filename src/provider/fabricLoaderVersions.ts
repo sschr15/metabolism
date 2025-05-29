@@ -1,6 +1,6 @@
-import { MavenLibraryName } from "#common/schema/maven.ts";
 import { resolveMavenLibrary } from "#common/transformation/maven.ts";
 import { HTTPCacheMode } from "#types/httpCache.ts";
+import { MavenLibraryName } from "#types/mavenLibraryName.ts";
 import { defineProvider } from "#types/provider.ts";
 import { z } from "zod/v4";
 

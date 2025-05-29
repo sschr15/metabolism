@@ -1,4 +1,4 @@
-import type { MavenLibraryName } from "#common/schema/maven.ts";
+import type { MavenLibraryName } from "#types/mavenLibraryName.ts";
 
 
 export function isLWJGL3(name: MavenLibraryName) {

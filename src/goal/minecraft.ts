@@ -1,10 +1,10 @@
 import { throwError } from "#common/index.ts";
-import type { PistonArgument, PistonLibrary, PistonVersion } from "#common/schema/pistonMeta/pistonVersion.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#common/transformation/maven.ts";
 import { isPlatformLibrary, ruleSetAppliesByDefault, transformPistonLibrary } from "#common/transformation/pistonMeta.ts";
 import pistonMetaGameVersions from "#provider/gameVersions.ts";
 import { VersionFileTrait, type VersionFileDependency } from "#types/format/v1/versionFile.ts";
 import { defineGoal, type VersionOutput } from "#types/goal.ts";
+import type { PistonArgument, PistonLibrary, PistonVersion } from "#types/pistonMeta/pistonVersion.ts";
 
 export default defineGoal({
 	id: "net.minecraft",
