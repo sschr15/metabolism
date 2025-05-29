@@ -30,13 +30,21 @@ export interface VersionFile {
 
 export type VersionFileArtifact = Omit<PistonArtifact, "path">;
 
-export type VersionFileLibrary = Omit<PistonLibrary, "name" | "downloads"> & {
+type OS = "windows" | "osx" | "linux" | "freebsd" | "openbsd";
+type Arch = "x86_64" | "x86" | "arm64" | "arm32";
+
+// OS alone means x86 or x86_64
+export type VersionFilePlatform = OS | `${OS}-${Arch}`;
+
+export type VersionFileLibrary = Omit<PistonLibrary, "name" | "downloads" | "natives"> & {
 	name: string;
 
 	downloads?: {
 		artifact?: VersionFileArtifact;
 		classifiers?: Record<string, VersionFileArtifact>;
 	};
+
+	natives?: Partial<Record<VersionFilePlatform, string>>;
 
 	"MMC-hint"?: string,
 	"MMC-absoluteUrl"?: string,

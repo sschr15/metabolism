@@ -1,11 +1,10 @@
-import { resolveMavenLibrary } from "#common/transformation/maven.ts";
 import { HTTPCacheMode } from "#types/httpCache.ts";
-import { MavenLibraryName } from "#types/mavenLibraryName.ts";
+import { MavenArtifactRef } from "#types/mavenLibraryName.ts";
 import { defineProvider } from "#types/provider.ts";
 import { z } from "zod/v4";
 
 const LoaderVersions = z.array(z.object({
-	maven: MavenLibraryName,
+	maven: MavenArtifactRef,
 	version: z.string(),
 	stable: z.boolean(),
 }));
@@ -52,11 +51,7 @@ export default defineProvider({
 		return await Promise.all(list.map(async (version): Promise<FabricLoaderInfo> => {
 			const infoResponse = await http.fetchJSON(
 				version.version + ".json",
-				resolveMavenLibrary(
-					"https://maven.fabricmc.net",
-					version.maven,
-					"json"
-				),
+				version.maven.url("https://maven.fabricmc.net", "json"),
 				{ mode: HTTPCacheMode.Eternal }
 			);
 

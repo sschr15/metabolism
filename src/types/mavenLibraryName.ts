@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 
-export const MavenLibraryName = z.string().transform((name, context) => {
+export const MavenArtifactRef = z.string().transform((name, context) => {
 	const [groupID, artifactID, version, classifier] = name.split(":", 4);
 
 	if (!groupID || !artifactID || !version) {
@@ -8,15 +8,52 @@ export const MavenLibraryName = z.string().transform((name, context) => {
 		return z.NEVER;
 	}
 
-	const result = {
-		full: name,
-		groupID,
-		artifactID,
-		version,
-		classifier,
-	};
-
-	return result;
+	return new MavenArtifactRef_(groupID, artifactID, version, classifier);
 });
 
-export interface MavenLibraryName extends z.output<typeof MavenLibraryName> { }
+class MavenArtifactRef_ {
+	constructor(
+		public group: string,
+		public artifact: string,
+		public version: string,
+		public classifier?: string
+	) {
+	}
+
+	get full() {
+		if (this.classifier)
+			return `${this.group}:${this.artifact}:${this.version}:${this.classifier}`;
+		else
+			return `${this.group}:${this.artifact}:${this.version}`;
+	}
+
+	format(keys: ("group" | "artifact" | "version" | "classifier")[]): string {
+		let result = "";
+
+		for (const key of keys) {
+			const value = this[key];
+
+			if (!value)
+				continue;
+
+			if (result.length !== 0)
+				result += ":";
+
+			result += value;
+		}
+
+		return result;
+	}
+
+	url(base: string, extension: string): URL {
+		const group = encodeURIComponent(this.group).replace(".", "/");
+		const artifact = encodeURIComponent(this.artifact);
+		const version = encodeURIComponent(this.version);
+		const classifier = this.classifier ? "-" + encodeURIComponent(this.classifier) : "";
+		const suffix = "." + encodeURIComponent(extension);
+
+		return new URL(`${group}/${artifact}/${version}/${artifact}-${version}${classifier}${suffix}`, base);
+	}
+}
+
+export interface MavenArtifactRef extends MavenArtifactRef_ { }

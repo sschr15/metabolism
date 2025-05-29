@@ -1,5 +1,5 @@
-import type { VersionFileLibrary } from "#types/format/v1/versionFile.ts";
-import type { PistonLibrary, PistonRule } from "#types/pistonMeta/pistonVersion.ts";
+import type { VersionFileArtifact, VersionFileLibrary } from "#types/format/v1/versionFile.ts";
+import type { PistonArtifact, PistonLibrary, PistonRule } from "#types/pistonMeta/pistonVersion.ts";
 import { mapValues, omit } from "es-toolkit";
 import { isEmpty } from "es-toolkit/compat";
 
@@ -17,18 +17,20 @@ export function ruleSetAppliesByDefault(rules: PistonRule[]): boolean {
 export function transformPistonLibrary(lib: PistonLibrary): VersionFileLibrary {
 	return {
 		...lib,
-		name: lib.name.classifier
-			? `${lib.name.groupID}:${lib.name.artifactID}-${lib.name.classifier}:${lib.name.version}`
-			: lib.name.full,
+		name: lib.name.full,
 		downloads: lib.downloads ? {
 			artifact: lib.downloads.artifact
-				? omit(lib.downloads.artifact, ["path"])
+				? transformPistonArtifact(lib.downloads.artifact)
 				: undefined,
 			classifiers: lib.downloads.classifiers
-				? mapValues(lib.downloads.classifiers, value => omit(value, ["path"]))
+				? mapValues(lib.downloads.classifiers, transformPistonArtifact)
 				: undefined,
-		} : undefined
+		} : undefined,
 	};
+}
+
+export function transformPistonArtifact(artifact: PistonArtifact): VersionFileArtifact {
+	return omit(artifact, ["path"]);
 }
 
 export function isPlatformLibrary(lib: PistonLibrary) {

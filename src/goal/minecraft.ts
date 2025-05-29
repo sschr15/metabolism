@@ -29,8 +29,8 @@ function transformVersion(version: PistonVersion): VersionOutput {
 	if (mainClass.startsWith("net.minecraft.launchwrapper.")) {
 		libraries = libraries.filter(
 			x => !x.name.full.startsWith("net.minecraft:launchwrapper:")
-				&& x.name.groupID !== "net.sf.jopt-simple"
-				&& x.name.groupID !== "org.ow2.asm"
+				&& x.name.group !== "net.sf.jopt-simple"
+				&& x.name.group !== "org.ow2.asm"
 		);
 
 		mainClass = undefined;

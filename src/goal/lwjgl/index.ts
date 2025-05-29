@@ -1,12 +1,15 @@
+import { setIfAbsent } from "#common/maps.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#common/transformation/maven.ts";
-import { isPlatformLibrary, transformPistonLibrary } from "#common/transformation/pistonMeta.ts";
+import { transformPistonArtifact, transformPistonLibrary } from "#common/transformation/pistonMeta.ts";
+import { moduleLogger } from "#logger.ts";
 import pistonMetaGameVersions from "#provider/gameVersions.ts";
-import type { VersionFileDependency } from "#types/format/v1/versionFile.ts";
+import type { VersionFileArtifact, VersionFileDependency, VersionFileLibrary, VersionFilePlatform } from "#types/format/v1/versionFile.ts";
 import { defineGoal, type VersionOutput } from "#types/goal.ts";
-import type { MavenLibraryName } from "#types/mavenLibraryName.ts";
+import type { MavenArtifactRef } from "#types/mavenLibraryName.ts";
 import { PistonLibrary, PistonVersion } from "#types/pistonMeta/pistonVersion.ts";
-import { omit } from "es-toolkit";
 import { isEmpty } from "es-toolkit/compat";
+
+const logger = moduleLogger();
 
 const lwjgl3 = defineGoal({
 	id: "org.lwjgl3",
@@ -24,21 +27,25 @@ const lwjgl2 = defineGoal({
 	generate: data => generate(data, ["org.lwjgl3"], isLWJGL2, isLWJGL2Dependency)
 });
 
-type VersionNamePredicate = (name: MavenLibraryName) => boolean;
+type VersionNamePredicate = (name: MavenArtifactRef) => boolean;
 
-interface LWGJLEntry {
-	modules: Map<string, PistonLibrary>;
+interface LWJGLVersion {
+	modules: Map<string, LWJGLModule>;
 	firstSeen: string;
-	used: boolean;
+}
+
+interface LWJGLModule {
+	javaCode?: VersionFileArtifact;
+	nativeCode: Map<VersionFilePlatform, VersionFileArtifact>;
 }
 
 function generate(data: PistonVersion[], conflictUIDs: string[], filter: VersionNamePredicate, filterDep: VersionNamePredicate) {
-	const versions: Map<string, LWGJLEntry> = new Map;
+	const versions: Map<string, LWJGLVersion> = new Map;
 	const sharedDeps: Map<string, PistonLibrary> = new Map;
 
 	const conflicts: VersionFileDependency[] = conflictUIDs.map(uid => ({ uid }));
 
-	data.forEach(version => version.libraries.forEach(lib => {
+	data.forEach(gameVersion => gameVersion.libraries.forEach(lib => {
 		if (filterDep(lib.name)) {
 			if (!sharedDeps.has(lib.name.full))
 				sharedDeps.set(lib.name.full, lib);
@@ -49,83 +56,111 @@ function generate(data: PistonVersion[], conflictUIDs: string[], filter: Version
 		if (!filter(lib.name))
 			return;
 
-		let entry = versions.get(lib.name.version);
+		const version = setIfAbsent(
+			versions,
+			lib.name.version,
+			{ modules: new Map, firstSeen: "" }
+		);
 
-		if (!entry) {
-			entry = { modules: new Map, firstSeen: "", used: false };
-			versions.set(lib.name.version, entry);
+		// always set - we are going from newest to oldest and want the oldest to have the final say
+		version.firstSeen = gameVersion.releaseTime;
+
+		const module = setIfAbsent(
+			version.modules,
+			lib.name.format(["group", "artifact"]), // org.lwjgl:lwjgl-thing
+			{ nativeCode: new Map }
+		);
+
+		if (lib.downloads?.artifact) {
+			if (lib.name.classifier) {
+				const platform = mapClassifier(lib.name.classifier);
+
+				if (platform)
+					setIfAbsent(module.nativeCode, platform, lib.downloads.artifact);
+				else
+					logger.warn(`Could not determine platform from LWJGL classifier: '${lib.name.classifier}'`);
+			} else
+				module.javaCode = transformPistonArtifact(lib.downloads.artifact);
 		}
 
-		entry.firstSeen = version.releaseTime; // (we are going from newest to oldest)
-		entry.used ||= !isPlatformLibrary(lib);
+		const classifierLookup = lib.downloads?.classifiers;
 
-		const existingModule = entry.modules.get(lib.name.full);
+		if (lib.natives && !isEmpty(classifierLookup)) {
+			for (const [key, value] of Object.entries(lib.natives)) {
+				if (!Object.hasOwn(classifierLookup, value))
+					continue;
 
-		if (existingModule) {
-			// merge as much data as possible into one library - populate fields which aren't already present
-
-			if (lib.natives) {
-				existingModule.natives = {
-					...lib.natives,
-					...existingModule.natives
-				};
+				setIfAbsent(module.nativeCode, key as keyof typeof lib.natives, classifierLookup[value]!);
 			}
-
-			if (lib.downloads) {
-				existingModule.downloads ??= {};
-
-				if (lib.downloads.artifact && !existingModule.downloads.artifact)
-					existingModule.downloads.artifact = lib.downloads.artifact;
-
-				if (lib.downloads.classifiers) {
-					existingModule.downloads.classifiers = {
-						...lib.downloads.classifiers,
-						...existingModule.downloads.classifiers
-					};
-				}
-			}
-
-			if (lib.extract && !existingModule.extract)
-				existingModule.extract = lib.extract;
-		} else {
-			// remove rules only if this is old-style merged natives
-			// it is essential to keep them for new separated natives as they will otherwise be downloaded on all platforms!
-			//
-			// note:
-			// the `natives` property was originally used as LWJGL natives had to be extracted by the launcher, and couldn't simply be put on the classpath
-			// this was presumably changed as it's not needed for new LWJGL versions and this format (probably) does not support architecture (only OS)
-			// Prism Launcher certainly does support this (possibly as an extension to the format?)
-			// however, it's probably best to stay as close to what the official launcher is doing for each version
-
-			const pureLib = lib.name.classifier ? lib : omit(lib, ["rules"]);
-
-			entry.modules.set(lib.name.full, pureLib);
 		}
 	}));
 
 	return [
-		...versions.entries().filter(([_, entry]) => entry.used).map(([version, entry]): VersionOutput => ({
-			version,
-			releaseTime: entry.firstSeen,
+		...versions.entries().map(([key, version]): VersionOutput => ({
+			version: key,
+			releaseTime: version.firstSeen,
 			type: "release",
 
 			order: -1,
 			conflicts,
 			volatile: true,
 
-			libraries: [...sharedDeps.values(), ...entry.modules.values().flatMap(splitClassifiers)].map(transformPistonLibrary),
+			libraries: [
+				...sharedDeps.values().map(transformPistonLibrary),
+				...version.modules.entries().flatMap(([moduleKey, module]) => transformModuleMerged(key, moduleKey, module)),
+			]
 		}))
 	];
 }
 
-export default [lwjgl3, lwjgl2];
+function transformModuleMerged(versionKey: string, moduleKey: string, module: LWJGLModule): VersionFileLibrary[] {
+	const result: VersionFileLibrary[] = [];
 
-function splitClassifiers(library: PistonLibrary) {
-	if (!library.downloads?.artifact || isEmpty(library.downloads.classifiers))
-		return [library];
+	const name = moduleKey + ":" + versionKey;
 
-	return [
-		{ ...omit(library, ["natives", "extract"]), downloads: { artifact: library.downloads.artifact } },
-		{ ...library, downloads: { classifiers: library.downloads.classifiers } }
-	];
+	if (module.javaCode !== undefined)
+		result.push({ name, downloads: { artifact: module.javaCode } });
+
+	if (!isEmpty(module.nativeCode)) {
+		result.push({
+			name,
+			downloads: { classifiers: Object.fromEntries(module.nativeCode.entries()) },
+			natives: Object.fromEntries(module.nativeCode.keys().map(x => [x, x]))
+		});
+	}
+
+	return result;
 }
+
+function mapClassifier(classifier: string): VersionFilePlatform | undefined {
+	const prefix = "natives-";
+
+	if (!classifier.startsWith(prefix))
+		return undefined;
+
+	classifier = classifier.substring(prefix.length);
+
+	const optionalSuffix = "-patch";
+
+	if (classifier.endsWith(optionalSuffix))
+		classifier = classifier.slice(0, -optionalSuffix.length);
+
+	switch (classifier) {
+		case "windows":
+		case "windows-x86":
+		case "windows-arm64":
+		case "osx":
+		case "linux":
+		case "linux-arm64":
+		case "linux-arm32":
+		case "freebsd":
+			return classifier;
+
+		case "macos": return "osx";
+		case "macos-arm64": return "osx-arm64";
+	}
+
+	return undefined;
+}
+
+export default [lwjgl3, lwjgl2];
