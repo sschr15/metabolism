@@ -31,4 +31,7 @@ export function transformPistonLibrary(lib: PistonLibrary): VersionFileLibrary {
 	};
 }
 
-
+export function isPlatformLibrary(lib: PistonLibrary) {
+	return (lib.rules && !ruleSetAppliesByDefault(lib.rules))
+		|| (lib.natives && !isEmpty(lib.natives));
+}

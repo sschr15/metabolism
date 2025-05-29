@@ -1,11 +1,10 @@
 import { throwError } from "#common/index.ts";
 import type { PistonArgument, PistonLibrary, PistonVersion } from "#common/schema/pistonMeta/pistonVersion.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#common/transformation/maven.ts";
-import { ruleSetAppliesByDefault, transformPistonLibrary } from "#common/transformation/pistonMeta.ts";
+import { isPlatformLibrary, ruleSetAppliesByDefault, transformPistonLibrary } from "#common/transformation/pistonMeta.ts";
 import pistonMetaGameVersions from "#provider/gameVersions.ts";
 import { VersionFileTrait, type VersionFileDependency } from "#types/format/v1/versionFile.ts";
 import { defineGoal, type VersionOutput } from "#types/goal.ts";
-import { isEmpty } from "es-toolkit/compat";
 
 export default defineGoal({
 	id: "net.minecraft",
@@ -87,10 +86,7 @@ function processLWJGL(lib: PistonLibrary, requires: VersionFileDependency[], tra
 
 	if (lwjgl2 || lwjgl3) {
 		// determine version based on non-pltaform-specific libraries in case the version varies
-		if (lib.rules && !ruleSetAppliesByDefault(lib.rules))
-			return true;
-
-		if (lib.natives && !isEmpty(lib.natives))
+		if (isPlatformLibrary(lib))
 			return true;
 
 		const uid = lwjgl3 ? "org.lwjgl3" : "org.lwjgl";
