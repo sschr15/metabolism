@@ -16,7 +16,7 @@ export function ruleSetAppliesByDefault(rules: PistonRule[]): boolean {
 
 export function transformPistonLibrary(lib: PistonLibrary): VersionFileLibrary {
 	return {
-		...lib,
+		...omit(lib, ["extract"]),
 		name: lib.name.full,
 		downloads: lib.downloads ? {
 			artifact: lib.downloads.artifact

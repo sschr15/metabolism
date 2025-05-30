@@ -1,6 +1,6 @@
 import { setIfAbsent } from "#common/index.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#common/transformation/maven.ts";
-import { transformPistonArtifact, transformPistonLibrary } from "#common/transformation/pistonMeta.ts";
+import { isPlatformLibrary, transformPistonArtifact, transformPistonLibrary } from "#common/transformation/pistonMeta.ts";
 import { moduleLogger } from "#logger.ts";
 import pistonMetaGameVersions from "#provider/gameVersions.ts";
 import type { VersionFileArtifact, VersionFileDependency, VersionFileLibrary, VersionFilePlatform } from "#types/format/v1/versionFile.ts";
@@ -33,6 +33,7 @@ type VersionNamePredicate = (name: MavenArtifactRef) => boolean;
 interface LWJGLVersion {
 	modules: Map<string, LWJGLModule>;
 	firstSeen: string;
+	used: boolean;
 	preferSplit?: boolean;
 }
 
@@ -59,11 +60,12 @@ function generate(data: PistonVersion[], conflictUIDs: string[], filter: Version
 		const version = setIfAbsent(
 			versions,
 			lib.name.version,
-			{ modules: new Map, firstSeen: "" }
+			{ modules: new Map, used: false, firstSeen: "" }
 		);
 
 		// always set - we are going from newest to oldest and want the oldest to have the final say
 		version.firstSeen = gameVersion.releaseTime;
+		version.used ||= !isPlatformLibrary(lib);
 
 		const module = setIfAbsent(
 			version.modules,
@@ -109,8 +111,9 @@ function generate(data: PistonVersion[], conflictUIDs: string[], filter: Version
 
 	const conflicts: VersionFileDependency[] = conflictUIDs.map(uid => ({ uid }));
 
-	return [
-		...versions.entries().map(([versionKey, version]): VersionOutput => ({
+	const result = versions.entries()
+		.filter(([_, version]) => version.used)
+		.map(([versionKey, version]): VersionOutput => ({
 			version: versionKey,
 			releaseTime: version.firstSeen,
 			type: "release",
@@ -130,8 +133,9 @@ function generate(data: PistonVersion[], conflictUIDs: string[], filter: Version
 						return transformModuleMerged(name, module);
 				}),
 			]
-		}))
-	];
+		}));
+
+	return [...result];
 }
 
 function transformModuleMerged(name: string, module: LWJGLModule): VersionFileLibrary[] {
@@ -152,9 +156,6 @@ function transformModuleMerged(name: string, module: LWJGLModule): VersionFileLi
 		);
 
 		result.push({ name, downloads: { classifiers }, natives });
-
-		if (result[1]?.extract)
-			console.log(result[1]);
 	}
 
 	return result;
