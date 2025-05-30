@@ -121,28 +121,36 @@ function generate(data: PistonVersion[], conflictUIDs: string[], filter: Version
 		version.modules.forEach(patchModule);
 
 	const conflicts: VersionFileDependency[] = conflictUIDs.map(uid => ({ uid }));
-
 	const result = versions.entries()
 		.filter(([_, version]) => version.used)
-		.map(([versionKey, version]): VersionOutput => ({
-			version: versionKey,
-			releaseTime: version.firstSeen,
-			type: "release",
+		.map(([versionKey, version]): VersionOutput => {
+			const transformModule = (module: LWJGLModule): VersionFileLibrary[] => {
+				if (version.preferSplit)
+					return transformModuleSplit(module);
+				else
+					return transformModuleMerged(module);
+			};
 
-			order: -1,
-			conflicts,
-			volatile: true,
+			return {
+				version: versionKey,
+				releaseTime: version.firstSeen,
+				type: "release",
 
-			libraries: [
-				...sharedDeps.values().flatMap(transformModuleMerged),
-				...version.modules.values().flatMap(transformModuleMerged),
-			]
-		}));
+				order: -1,
+				conflicts,
+				volatile: true,
+
+				libraries: [
+					...sharedDeps.values().flatMap(transformModule),
+					...version.modules.values().flatMap(transformModule),
+				]
+			};
+		});
 
 	return [...result];
 }
 
-function patchModule(module: LWJGLModule) {
+function patchModule(module: LWJGLModule): void {
 	const name = module.baseName.value;
 
 	if (!Object.hasOwn(LWJGL_EXTRA_NATIVES, name))
