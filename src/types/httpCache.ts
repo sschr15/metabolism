@@ -30,11 +30,11 @@ export interface Response<T> {
 
 export const enum HTTPCacheMode {
 	/**
-	 * Send If-Modified-Since with the last known value of Last-Modified. If 304 Unmodified is returned, use the cached data.
+	 * Send If-None-Match with the last known ETag if available - otherwise falls back to If-Modified-Since. If 304 Unmodified is returned, use the cached data.
 	 * Use this if you haven't already received the expected checksum from another request.
 	 * CompareLocalDigest should be preferred if possible to avoid unecessary requests.
 	 */
-	IfModifiedSince,
+	ConditionalRequest,
 	/**
 	 * Check the digest of the locally cached value, and only perform a HTTP request if it does not match.
 	 */
@@ -45,7 +45,7 @@ export const enum HTTPCacheMode {
 	Eternal,
 }
 
-export type HTTPCacheStrategy = { mode: HTTPCacheMode.IfModifiedSince | HTTPCacheMode.Eternal; }
+export type HTTPCacheStrategy = { mode: HTTPCacheMode.ConditionalRequest | HTTPCacheMode.Eternal; }
 	| { mode: HTTPCacheMode.CompareLocalDigest; algorithm: DigestAlgorithm; expected: string | Buffer; };
 
 export type DigestAlgorithm = "sha-1" | "sha-256" | "sha-384" | "sha-512";

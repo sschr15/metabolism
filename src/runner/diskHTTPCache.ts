@@ -15,6 +15,7 @@ const limit = pLimit(16); // TODO: don't hardcode
 const CacheEntry = z.object({
 	sha1: z.string().transform(input => Buffer.from(input, "hex") as Buffer),
 	lastModified: z.coerce.date().optional(),
+	eTag: z.string().optional(),
 });
 
 interface CacheEntry extends z.output<typeof CacheEntry> { }
@@ -115,7 +116,7 @@ export class DiskHTTPCache implements HTTPCache {
 		await writeFile(entryPath, JSON.stringify({ sha1: entry.sha1.toString("hex"), lastModified: entry.lastModified?.toISOString() }));
 	}
 
-	async fetch(key: string, url: string | URL, contentType: string, strategy: HTTPCacheStrategy = { mode: HTTPCacheMode.IfModifiedSince }): Promise<Response<string>> {
+	async fetch(key: string, url: string | URL, contentType: string, strategy: HTTPCacheStrategy = { mode: HTTPCacheMode.ConditionalRequest }): Promise<Response<string>> {
 		this._lock(key);
 
 		try {
@@ -158,15 +159,20 @@ export class DiskHTTPCache implements HTTPCache {
 				"Content-Type": contentType,
 			});
 
-			if (strategy.mode === HTTPCacheMode.IfModifiedSince && entry?.lastModified !== undefined)
-				headers.set("If-Modified-Since", entry.lastModified.toUTCString());
+			if (strategy.mode === HTTPCacheMode.ConditionalRequest) {
+				if (entry?.lastModified)
+					headers.set("If-Modified-Since", entry.lastModified.toUTCString());
+
+				if (entry?.eTag)
+					headers.set("If-None-Match", entry.eTag);
+			}
 
 			const response = await retry(
 				() => limit(() => fetch(url, { headers, })),
 				{ delay: attempts => 500 * (2 ** attempts), retries: 5 }
 			);
 
-			if (strategy.mode === HTTPCacheMode.IfModifiedSince && response.status === 304 && value !== null) {
+			if (strategy.mode === HTTPCacheMode.ConditionalRequest && response.status === 304 && value !== null) {
 				this._logger.debug(`Cache entry '${key}' is up-to-date (304)`);
 
 				return {
@@ -186,9 +192,12 @@ export class DiskHTTPCache implements HTTPCache {
 			if (newLastModified && isNaN(newLastModified.getTime()))
 				throw new Error(`Invalid Last-Modified header: '${lastModifiedHeader}'`);
 
+			const newETag = response.headers.get("ETag") ?? undefined;
+
 			const newEntry: CacheEntry = {
 				sha1: await digest("sha-1", newValue),
 				lastModified: newLastModified,
+				eTag: newETag,
 			};
 
 			await this._put(key, newEntry, newValue);
