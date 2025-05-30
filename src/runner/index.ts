@@ -5,6 +5,7 @@ import type { PackageIndexFile, PackageIndexFileVersion } from "#types/format/v1
 import type { VersionFile } from "#types/format/v1/versionFile.ts";
 import { type Goal, type VersionOutput } from "#types/goal.ts";
 import type { Provider } from "#types/provider.ts";
+import { sortBy } from "es-toolkit";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { DiskHTTPCache } from "./diskHTTPCache.ts";
@@ -77,11 +78,11 @@ async function run(providers: Set<Provider>, dependents: Map<Provider, Goal[]>, 
 	// TODO: placeholder
 	const rootIndex: IndexFile = {
 		formatVersion: 1,
-		packages: goalResults.map(([goal, sha256]) => ({
+		packages: sortBy(goalResults.map(([goal, sha256]) => ({
 			uid: goal.id,
 			name: goal.name,
 			sha256,
-		}))
+		})), [v => v.uid])
 	};
 
 	await writeFile(path.join(options.outputDir, "index.json"), JSON.stringify(rootIndex, undefined, 2));
