@@ -18,7 +18,8 @@ const lwjgl3 = defineGoal({
 	name: "LWJGL 3",
 	provider: pistonMetaGameVersions,
 
-	generate: data => generate(data, ["org.lwjgl"], isLWJGL3, () => false)
+	generate: data => generate(data, ["org.lwjgl"], isLWJGL3, () => false),
+	isRecommended: () => false,
 });
 
 const lwjgl2 = defineGoal({
@@ -26,7 +27,8 @@ const lwjgl2 = defineGoal({
 	name: "LWJGL 2",
 	provider: pistonMetaGameVersions,
 
-	generate: data => generate(data, ["org.lwjgl3"], isLWJGL2, isLWJGL2Dependency)
+	generate: data => generate(data, ["org.lwjgl3"], isLWJGL2, isLWJGL2Dependency),
+	isRecommended: () => false,
 });
 
 type VersionNamePredicate = (name: MavenArtifactRef) => boolean;

@@ -7,6 +7,7 @@ export default defineGoal({
 	provider: fabricLoaderVersions,
 
 	generate: data => data.map(transformInfo),
+	isRecommended: first => first,
 });
 
 function transformInfo(info: FabricLoaderInfo): VersionOutput {

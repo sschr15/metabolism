@@ -12,10 +12,11 @@ export interface Goal<TProvider extends Provider = Provider> {
 	provider: TProvider;
 
 	generate(data: TProvider extends Provider<infer TData> ? TData : never): VersionOutput[];
+	isRecommended(first: boolean, version: VersionOutput): boolean;
 }
 
 /**
  * Omit recommended to set it to <is this version the latest>
  */
-export type VersionOutput = Omit<VersionFile, "uid" | "name" | "formatVersion"> & { recommended?: boolean; };
+export type VersionOutput = Omit<VersionFile, "uid" | "name" | "formatVersion">;
 

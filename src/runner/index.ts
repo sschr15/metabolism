@@ -109,6 +109,8 @@ async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promi
 
 	const space = options.minify ? 0 : 2;
 
+	let anyRecommended = false;
+
 	const indexVersions = await Promise.all(outputs.map(async (output): Promise<PackageIndexFileVersion> => {
 		if (output.version === "index" || output.version.includes("/") || output.version.includes("\\"))
 			throw new Error(`Invalid version: '${output.version}'`);
@@ -133,10 +135,13 @@ async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promi
 
 		logger.debug(`sha-256 of '${outputPath}' is ${sha256}`);
 
+		const recommended = goal.isRecommended(anyRecommended, output);
+		anyRecommended ||= recommended;
+
 		return {
 			version: output.version,
 			type: output.type,
-			recommended: output.recommended ?? false,
+			recommended,
 			releaseTime: output.releaseTime,
 			sha256
 		};
@@ -163,7 +168,7 @@ async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promi
 	return indexSha256;
 }
 
-function generateVersionFile(goal: Goal, { recommended, ...output }: VersionOutput): VersionFile {
+function generateVersionFile(goal: Goal, output: VersionOutput): VersionFile {
 	const file: VersionFile = {
 		uid: goal.id,
 		name: goal.name,
