@@ -2,7 +2,7 @@ import { setIfAbsent } from "#common/index.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#common/transformation/maven.ts";
 import { isPlatformLibrary, transformPistonArtifact } from "#common/transformation/pistonMeta.ts";
 import { moduleLogger } from "#logger.ts";
-import pistonMetaGameVersions from "#provider/gameVersions.ts";
+import pistonMetaGameVersions from "#provider/gameVersions/index.ts";
 import type { VersionFileArtifact, VersionFileDependency, VersionFileLibrary, VersionFilePlatform } from "#types/format/v1/versionFile.ts";
 import { defineGoal, type VersionOutput } from "#types/goal.ts";
 import { MavenArtifactRef } from "#types/mavenLibraryName.ts";
@@ -35,7 +35,7 @@ type VersionNamePredicate = (name: MavenArtifactRef) => boolean;
 
 interface LWJGLVersion {
 	modules: Map<string, LWJGLModule>;
-	firstSeen: string;
+	firstSeen: Date;
 	used: boolean;
 	preferSplit?: boolean;
 }
@@ -60,7 +60,7 @@ function generate(data: PistonVersion[], conflictUIDs: string[], filter: Version
 				const version = setIfAbsent(
 					versions,
 					lib.name.version,
-					{ modules: new Map, used: false, firstSeen: "" }
+					{ modules: new Map, used: false, firstSeen: new Date("") }
 				);
 
 				// always set - we are going from newest to oldest and want the oldest to have the final say
@@ -135,7 +135,7 @@ function generate(data: PistonVersion[], conflictUIDs: string[], filter: Version
 
 			return {
 				version: versionKey,
-				releaseTime: version.firstSeen,
+				releaseTime: version.firstSeen.toISOString(),
 				type: "release",
 
 				order: -1,

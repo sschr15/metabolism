@@ -3,12 +3,13 @@ import { HTTPCacheMode, type HTTPCache } from "#types/httpCache.ts";
 import { PistonVersion } from "#types/pistonMeta/pistonVersion.ts";
 import { PistonVersionManifest, PistonVersionRef } from "#types/pistonMeta/pistonVersionManifest.ts";
 import { defineProvider } from "#types/provider.ts";
+import { OMNIARCHIVE_MAPPINGS } from "./omniarchiveMappings.ts";
 
 export default defineProvider({
 	id: "game-versions",
 
 	async provide(http): Promise<PistonVersion[]> {
-		return Promise.all([pistonMetaVersions(http), fabricMavenExperimentalVersions(http)])
+		return Promise.all([pistonMetaVersions(http), omniarchiveVersions(http)])
 			.then(versions => versions.flat());
 	}
 });
@@ -26,22 +27,22 @@ async function pistonMetaVersions(http: DiskHTTPCache): Promise<PistonVersion[]>
 	return await getVersions(http, base, manifest.versions);
 }
 
-async function fabricMavenExperimentalVersions(http: DiskHTTPCache): Promise<PistonVersion[]> {
-	const base = "fabric-maven";
+// not all omniarchive versions - just enough to maintain backwards compat :)
+async function omniarchiveVersions(http: DiskHTTPCache): Promise<PistonVersion[]> {
+	const base = "omniarchive";
 
-	const experimentalManifest = PistonVersionManifest.parse(
+	const manifest = PistonVersionManifest.parse(
 		await http.fetchJSONContent(
-			base + "/experimental-versions.json",
-			"https://maven.fabricmc.net/net/minecraft/experimental_versions.json"
+			base + "/manifest.json",
+			"https://meta.omniarchive.uk/v1/manifest.json"
 		)
 	);
 
-	const versions = experimentalManifest.versions
-		.filter(version => version.type === "pending");
+	const versions = manifest.versions
+		.filter(x => Object.hasOwn(OMNIARCHIVE_MAPPINGS, x.id))
+		.map(x => ({ ...x, ...OMNIARCHIVE_MAPPINGS[x.id]! }));
 
-	const full = await getVersions(http, base, versions);
-
-	return full.map(version => ({ ...version, type: "experiment" }));
+	return getVersions(http, base, versions);
 }
 
 async function getVersions(http: HTTPCache, base: string, versions: PistonVersionRef[]): Promise<PistonVersion[]> {
@@ -52,7 +53,8 @@ async function getVersions(http: HTTPCache, base: string, versions: PistonVersio
 			{ mode: HTTPCacheMode.CompareLocalDigest, algorithm: "sha-1", expected: version.sha1 }
 		);
 
-		return PistonVersion.parse(json);
+		// manifest ID should take precidence - in some cases we override it
+		return { ...PistonVersion.parse(json), id: version.id };
 	}));
 }
 

@@ -1,7 +1,7 @@
 import { throwError } from "#common/index.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#common/transformation/maven.ts";
 import { isPlatformLibrary, ruleSetAppliesByDefault, transformPistonLibrary } from "#common/transformation/pistonMeta.ts";
-import pistonMetaGameVersions from "#provider/gameVersions.ts";
+import pistonMetaGameVersions from "#provider/gameVersions/index.ts";
 import { VersionFileTrait, type VersionFileDependency } from "#types/format/v1/versionFile.ts";
 import { defineGoal, type VersionOutput } from "#types/goal.ts";
 import type { PistonArgument, PistonLibrary, PistonVersion } from "#types/pistonMeta/pistonVersion.ts";
@@ -27,7 +27,7 @@ function transformVersion(version: PistonVersion): VersionOutput {
 
 	libraries = libraries.filter(x => !processLWJGL(x, requires, traits));
 
-	if (mainClass.startsWith("net.minecraft.launchwrapper.")) {
+	if (mainClass?.startsWith("net.minecraft.launchwrapper.")) {
 		libraries = libraries.filter(
 			x => !x.name.value.startsWith("net.minecraft:launchwrapper:")
 				&& x.name.group !== "net.sf.jopt-simple"
@@ -55,7 +55,7 @@ function transformVersion(version: PistonVersion): VersionOutput {
 	return {
 		version: version.id,
 		type: version.type,
-		releaseTime: version.releaseTime,
+		releaseTime: version.releaseTime.toISOString(),
 
 		order: -2,
 		requires,

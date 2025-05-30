@@ -4,9 +4,7 @@ export const PistonVersionRef = z.object({
 	id: z.string(),
 	type: z.string(),
 	url: z.url(),
-	time: z.coerce.date(),
-	releaseTime: z.coerce.date(),
-	sha1: z.string().transform(input => Buffer.from(input, "hex")),
+	sha1: z.string(),
 });
 
 export interface PistonVersionRef extends z.output<typeof PistonVersionRef> { }
