@@ -135,7 +135,7 @@ async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promi
 
 		logger.debug(`sha-256 of '${outputPath}' is ${sha256}`);
 
-		const recommended = goal.isRecommended(anyRecommended, output);
+		const recommended = goal.isRecommended(!anyRecommended, output);
 		anyRecommended ||= recommended;
 
 		return {
