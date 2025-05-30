@@ -40,6 +40,6 @@ jobs:
           git config user.email "gitbot@scrumplex.net"
           git config user.name "PrismAutomata"
           git add .
-          git commit -m "Automatic update for latest commit
+          git diff-index --quiet HEAD || git commit -m "Automatic update for latest commit
           ${{ github.event.head_commit.message }}"
           git push
