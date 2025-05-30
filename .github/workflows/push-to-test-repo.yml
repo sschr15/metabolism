@@ -1,0 +1,45 @@
+# Quick and dirty stuff just for testing
+
+name: Push to test repo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        env:
+          LAST_COMMIT: ${{ github.event.head_commit.message }}
+      - name: Checkout output repo
+        uses: actions/checkout@v4
+        with:
+          repository: TheKodeToad/metabolism-test
+          token: ${{ secrets.PAT }}
+          path: run/output
+      - name: Cache upstream metadata
+        uses: actions/cache@v4
+        with:
+          path: run/cache
+          key: run-cache
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile --prod
+      - name: Generate
+        run: env PINO_LOG_LEVEL=debug pnpm run start all | pnpm pino-pretty
+      - name: Push
+        run: |
+          cd run/output
+          git config user.email "gitbot@scrumplex.net"
+          git config user.name "PrismAutomata"
+          git add .
+          git commit -m "Automatic update for latest commit
+          ${{ github.event.head_commit.message }}"
+          git push
