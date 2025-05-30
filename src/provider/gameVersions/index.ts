@@ -11,7 +11,7 @@ export default defineProvider({
 
 	async provide(http): Promise<PistonVersion[]> {
 		return Promise.all([pistonMetaVersions(http), omniarchiveVersions(http)])
-			.then(versions => sortBy(versions.flat(), [version => version.releaseTime]));
+			.then(versions => sortBy(versions.flat(), [version => -version.releaseTime]));
 	}
 });
 
