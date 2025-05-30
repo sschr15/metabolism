@@ -1,14 +1,15 @@
 import { setIfAbsent } from "#common/index.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#common/transformation/maven.ts";
-import { isPlatformLibrary, transformPistonArtifact, transformPistonLibrary } from "#common/transformation/pistonMeta.ts";
+import { isPlatformLibrary, transformPistonArtifact } from "#common/transformation/pistonMeta.ts";
 import { moduleLogger } from "#logger.ts";
 import pistonMetaGameVersions from "#provider/gameVersions.ts";
 import type { VersionFileArtifact, VersionFileDependency, VersionFileLibrary, VersionFilePlatform } from "#types/format/v1/versionFile.ts";
 import { defineGoal, type VersionOutput } from "#types/goal.ts";
-import type { MavenArtifactRef } from "#types/mavenLibraryName.ts";
-import { PistonLibrary, PistonVersion } from "#types/pistonMeta/pistonVersion.ts";
+import { MavenArtifactRef } from "#types/mavenLibraryName.ts";
+import { PistonVersion } from "#types/pistonMeta/pistonVersion.ts";
 import { omit } from "es-toolkit";
 import { isEmpty } from "es-toolkit/compat";
+import { LWJGL_EXTRA_NATIVES } from "./extraNatives.ts";
 
 const logger = moduleLogger();
 
@@ -37,77 +38,87 @@ interface LWJGLVersion {
 	preferSplit?: boolean;
 }
 
+export type ArtifactWithClassifier = VersionFileArtifact & { classifier: string; };
+
 interface LWJGLModule {
+	baseName: MavenArtifactRef;
 	javaCode?: VersionFileArtifact;
-	nativeCode: Map<VersionFilePlatform, VersionFileArtifact & { classifier: string; }>;
+	nativeCode: Map<VersionFilePlatform, ArtifactWithClassifier>;
 }
 
-function generate(data: PistonVersion[], conflictUIDs: string[], filter: VersionNamePredicate, filterDep: VersionNamePredicate) {
+function generate(data: PistonVersion[], conflictUIDs: string[], filter: VersionNamePredicate, filterDep: VersionNamePredicate): VersionOutput[] {
 	const versions: Map<string, LWJGLVersion> = new Map;
-	const sharedDeps: Map<string, PistonLibrary> = new Map;
+	const sharedDeps: Map<string, LWJGLModule> = new Map;
 
-	data.forEach(gameVersion => gameVersion.libraries.forEach(lib => {
-		if (filterDep(lib.name)) {
-			if (!sharedDeps.has(lib.name.full))
-				sharedDeps.set(lib.name.full, lib);
+	for (const gameVersion of data) {
+		for (const lib of gameVersion.libraries) {
+			let target: Map<string, LWJGLModule>;
 
-			return;
-		}
+			if (filter(lib.name)) {
+				const version = setIfAbsent(
+					versions,
+					lib.name.version,
+					{ modules: new Map, used: false, firstSeen: "" }
+				);
 
-		if (!filter(lib.name))
-			return;
+				// always set - we are going from newest to oldest and want the oldest to have the final say
+				version.firstSeen = gameVersion.releaseTime;
+				version.used ||= !isPlatformLibrary(lib);
 
-		const version = setIfAbsent(
-			versions,
-			lib.name.version,
-			{ modules: new Map, used: false, firstSeen: "" }
-		);
+				target = version.modules;
+			} else if (filterDep(lib.name))
+				target = sharedDeps;
+			else
+				continue;
 
-		// always set - we are going from newest to oldest and want the oldest to have the final say
-		version.firstSeen = gameVersion.releaseTime;
-		version.used ||= !isPlatformLibrary(lib);
+			const module = setIfAbsent(
+				target,
+				lib.name.format(["group", "artifact"]), // org.lwjgl:lwjgl-thing
+				{ baseName: lib.name.withoutClassifier(), nativeCode: new Map }
+			);
 
-		const module = setIfAbsent(
-			version.modules,
-			lib.name.format(["group", "artifact"]), // org.lwjgl:lwjgl-thing
-			{ nativeCode: new Map }
-		);
+			if (lib.downloads?.artifact) {
+				const artifact = transformPistonArtifact(lib.downloads.artifact);
+				const classifier = lib.name.classifier;
 
-		if (lib.downloads?.artifact) {
-			const classifier = lib.name.classifier;
+				if (classifier) {
+					const platform = mapClassifier(classifier);
 
-			if (classifier) {
-				const platform = mapClassifier(classifier);
+					if (platform)
+						setIfAbsent(module.nativeCode, platform, { ...artifact, classifier });
+					else
+						logger.warn(`Could not determine platform from LWJGL classifier: '${lib.name.classifier}'`);
 
-				if (platform) {
-					const artifact = transformPistonArtifact(lib.downloads.artifact);
-
-					version.preferSplit ??= true;
-					setIfAbsent(module.nativeCode, platform, { ...artifact, classifier });
-				} else
-					logger.warn(`Could not determine platform from LWJGL classifier: '${lib.name.classifier}'`);
-
-				return;
-			} else
-				module.javaCode = transformPistonArtifact(lib.downloads.artifact);
-		}
-
-		const classifierLookup = lib.downloads?.classifiers;
-
-		if (lib.natives && !isEmpty(classifierLookup)) {
-			for (const [platform, classifier] of Object.entries(lib.natives)) {
-				if (!Object.hasOwn(classifierLookup, classifier))
 					continue;
-
-				const artifact = transformPistonArtifact(classifierLookup[classifier]!);
-
-				version.preferSplit ??= false;
-				setIfAbsent(module.nativeCode, platform as keyof typeof lib.natives, { ...artifact, classifier });
+				} else
+					module.javaCode = artifact;
 			}
 
-			return;
+			const classifierLookup = lib.downloads?.classifiers;
+
+			if (lib.natives && !isEmpty(classifierLookup)) {
+				for (const [platform, classifier] of Object.entries(lib.natives)) {
+					if (!Object.hasOwn(classifierLookup, classifier))
+						continue;
+
+					const artifact = transformPistonArtifact(classifierLookup[classifier]!);
+
+					setIfAbsent(
+						module.nativeCode,
+						platform as keyof typeof lib.natives,
+						{ ...artifact, classifier }
+					);
+				}
+
+				continue;
+			}
 		}
-	}));
+	}
+
+	sharedDeps.values().forEach(patchModule);
+
+	for (const version of versions.values())
+		version.modules.forEach(patchModule);
 
 	const conflicts: VersionFileDependency[] = conflictUIDs.map(uid => ({ uid }));
 
@@ -123,26 +134,31 @@ function generate(data: PistonVersion[], conflictUIDs: string[], filter: Version
 			volatile: true,
 
 			libraries: [
-				...sharedDeps.values().map(transformPistonLibrary),
-				...version.modules.entries().flatMap(([moduleKey, module]) => {
-					const name = `${moduleKey}:${versionKey}`;
-
-					if (version.preferSplit)
-						return transformModuleSplit(name, module);
-					else
-						return transformModuleMerged(name, module);
-				}),
+				...sharedDeps.values().flatMap(transformModuleMerged),
+				...version.modules.values().flatMap(transformModuleMerged),
 			]
 		}));
 
 	return [...result];
 }
 
-function transformModuleMerged(name: string, module: LWJGLModule): VersionFileLibrary[] {
+function patchModule(module: LWJGLModule) {
+	const name = module.baseName.value;
+
+	if (!Object.hasOwn(LWJGL_EXTRA_NATIVES, name))
+		return;
+
+	const patches = LWJGL_EXTRA_NATIVES[name]!;
+
+	for (const [platform, artifact] of Object.entries(patches))
+		setIfAbsent(module.nativeCode, platform as keyof typeof LWJGL_EXTRA_NATIVES[string], artifact);
+}
+
+function transformModuleMerged(module: LWJGLModule): VersionFileLibrary[] {
 	const result: VersionFileLibrary[] = [];
 
 	if (module.javaCode !== undefined)
-		result.push({ name, downloads: { artifact: module.javaCode } });
+		result.push({ name: module.baseName.value, downloads: { artifact: module.javaCode } });
 
 	if (!isEmpty(module.nativeCode)) {
 		const classifiers = Object.fromEntries(
@@ -155,21 +171,21 @@ function transformModuleMerged(name: string, module: LWJGLModule): VersionFileLi
 				.map(([platform, artifact]) => [platform, artifact.classifier])
 		);
 
-		result.push({ name, downloads: { classifiers }, natives });
+		result.push({ name: module.baseName.value, downloads: { classifiers }, natives });
 	}
 
 	return result;
 }
 
-function transformModuleSplit(name: string, module: LWJGLModule): VersionFileLibrary[] {
+function transformModuleSplit(module: LWJGLModule): VersionFileLibrary[] {
 	const result: VersionFileLibrary[] = [];
 
 	if (module.javaCode !== undefined)
-		result.push({ name, downloads: { artifact: module.javaCode } });
+		result.push({ name: module.baseName.value, downloads: { artifact: module.javaCode } });
 
 	for (const [platform, artifact] of module.nativeCode) {
 		result.push({
-			name: name + ":" + artifact.classifier,
+			name: module.baseName.format(["group", "artifact"]) + "-" + artifact.classifier + ":" + module.baseName.version, // workaround
 			downloads: { artifact: omit(artifact, ["classifier"]) },
 			rules: [{
 				action: "allow",

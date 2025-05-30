@@ -9,14 +9,12 @@ export function throwError(error: Error | string): never {
 type InferKey<T extends Map<any, any>> = T extends Map<infer K, infer _> ? K : never;
 type InferValue<T extends Map<any, any>> = T extends Map<infer _, infer V> ? V : never;
 
-/** Equivilent to map[key] ??= defaultValue */
-export function setIfAbsent<TMap extends Map<any, any>>(map: TMap, key: InferKey<TMap>, defaultValue: InferValue<TMap>): InferValue<TMap> {
-	let result = map.get(key);
-
-	if (result === undefined) {
-		result = defaultValue;
-		map.set(key, defaultValue);
+/** Roughly equivilent to map[key] ??= defaultValue */
+export function setIfAbsent<TMap extends Map<any, any>>(map: TMap, key: InferKey<TMap>, value: InferValue<TMap>): InferValue<TMap> {
+	if (map.has(key))
+		return map.get(key);
+	else {
+		map.set(key, value);
+		return value;
 	}
-
-	return result;
 }

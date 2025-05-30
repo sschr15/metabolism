@@ -8,7 +8,7 @@ export const MavenArtifactRef = z.string().transform((name, context) => {
 		return z.NEVER;
 	}
 
-	return new MavenArtifactRef_(groupID, artifactID, version, classifier);
+	return new MavenArtifactRef_(groupID, artifactID, version, classifier) as MavenArtifactRef;
 });
 
 class MavenArtifactRef_ {
@@ -20,7 +20,7 @@ class MavenArtifactRef_ {
 	) {
 	}
 
-	get full() {
+	get value() {
 		if (this.classifier)
 			return `${this.group}:${this.artifact}:${this.version}:${this.classifier}`;
 		else
@@ -45,6 +45,10 @@ class MavenArtifactRef_ {
 		return result;
 	}
 
+	withoutClassifier(): MavenArtifactRef {
+		return new MavenArtifactRef_(this.group, this.artifact, this.version);
+	}
+
 	url(base: string, extension: string): URL {
 		const group = encodeURIComponent(this.group).replace(".", "/");
 		const artifact = encodeURIComponent(this.artifact);
@@ -53,6 +57,10 @@ class MavenArtifactRef_ {
 		const suffix = "." + encodeURIComponent(extension);
 
 		return new URL(`${group}/${artifact}/${version}/${artifact}-${version}${classifier}${suffix}`, base);
+	}
+
+	toString(): string {
+		return `[MavenArtifactRef ${this.value}]`;
 	}
 }
 
