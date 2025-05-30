@@ -3,6 +3,7 @@ import { HTTPCacheMode, type HTTPCache } from "#types/httpCache.ts";
 import { PistonVersion } from "#types/pistonMeta/pistonVersion.ts";
 import { PistonVersionManifest, PistonVersionRef } from "#types/pistonMeta/pistonVersionManifest.ts";
 import { defineProvider } from "#types/provider.ts";
+import { sortBy } from "es-toolkit";
 import { OMNIARCHIVE_MAPPINGS } from "./omniarchiveMappings.ts";
 
 export default defineProvider({
@@ -10,7 +11,7 @@ export default defineProvider({
 
 	async provide(http): Promise<PistonVersion[]> {
 		return Promise.all([pistonMetaVersions(http), omniarchiveVersions(http)])
-			.then(versions => versions.flat());
+			.then(versions => sortBy(versions.flat(), [version => version.releaseTime]));
 	}
 });
 
@@ -53,8 +54,8 @@ async function getVersions(http: HTTPCache, base: string, versions: PistonVersio
 			{ mode: HTTPCacheMode.CompareLocalDigest, algorithm: "sha-1", expected: version.sha1 }
 		);
 
-		// manifest ID should take precidence - in some cases we override it
-		return { ...PistonVersion.parse(json), id: version.id };
+		// manifest ID and type should take precidence - in some cases we override it
+		return { ...PistonVersion.parse(json), id: version.id, type: version.type };
 	}));
 }
 
