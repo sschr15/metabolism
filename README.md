@@ -26,7 +26,8 @@ Runs `prepare` for all dependencies of the specified goals.
 Prepare and build everything.
 
 ## Roadmap
-- ❌ Generate index
+- ☑️ Generate index (useable)
+  - only writes what has been added in the last build (needs to keep existing entries)
 - ❌ Remove old cache and output files
 
 Generation for...
@@ -34,9 +35,8 @@ Generation for...
   - missing "texturepacks" and "no-texturepacks" trait
   - missing "legacyServices" trait
   - missing "noapplet" trait
-  - missing "old_snapshot" and "experiment" versions
 - ☑️ LWJGL (useable)
-  - missing backported apple sillicon natives
+  - (3.x.x) missing backported apple sillicon natives
 - 🚧 Fabric
   - missing intermediary
 - ❌ NeoForge
