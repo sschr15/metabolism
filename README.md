@@ -1,5 +1,5 @@
 # Metabolism
-Scripts to generate Prism Launcher metadata based on external sources - TypeScript rewrite.
+Scripts to generate Prism Launcher metadata based on external sources - possible future implementation in TypeScript (not officially adopted nor agreed to be adopted).
 
 ## Usage
 First, run `pnpm install`.
