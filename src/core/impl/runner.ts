@@ -124,6 +124,9 @@ async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promi
 		if (!outputPath.startsWith(outputDir))
 			throw new Error(`Version '${output.version}' escapes output directory`);
 
+		const recommended = goal.isRecommended(!anyRecommended, output);
+		anyRecommended ||= recommended;
+
 		const versionFile = generateVersionFile(goal, output);
 		const outputData = JSON.stringify(versionFile, undefined, space);
 
@@ -134,9 +137,6 @@ async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promi
 		const sha256 = await digest("sha-256", outputData).then(sum => sum.toString("hex"));
 
 		logger.debug(`sha-256 of '${outputPath}' is ${sha256}`);
-
-		const recommended = goal.isRecommended(!anyRecommended, output);
-		anyRecommended ||= recommended;
 
 		return {
 			version: output.version,
