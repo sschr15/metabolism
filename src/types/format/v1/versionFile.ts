@@ -9,7 +9,6 @@ export interface VersionFile {
 	releaseTime: string;
 	type?: string;
 
-	order?: number; // legacy (to keep the JSON as close as possible for diffing)
 	volatile?: boolean;
 	requires?: VersionFileDependency[];
 	conflicts?: VersionFileDependency[];
@@ -65,5 +64,4 @@ export enum VersionFileTrait {
 	UseOnlineFixes = "legacyServices",
 	QuickPlaySingleplayerAware = "feature:is_quick_play_singleplayer",
 	QuickPlayMultiplayerAware = "feature:is_quick_play_multiplayer",
-	XRInitial = "XR:Initial", // Xbox requirements (irrelevent to us)
 }

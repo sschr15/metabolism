@@ -16,7 +16,6 @@ function transformInfo(info: FabricLoaderInfo): VersionOutput {
 		releaseTime: info.lastModified.toISOString(),
 		type: "release",
 
-		order: 10,
 		requires: [{ uid: "net.fabricmc.intermediary" }],
 
 		mainClass: info.mainClass.client,

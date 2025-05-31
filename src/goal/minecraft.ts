@@ -20,9 +20,6 @@ function transformVersion(version: PistonVersion): VersionOutput {
 	const traits: VersionFileTrait[] = [];
 	let mainClass: string | undefined = version.mainClass;
 
-	if (version.complianceLevel === 1)
-		traits.push(VersionFileTrait.XRInitial);
-
 	let libraries = version.libraries;
 
 	libraries = libraries.filter(x => !processLWJGL(x, requires, traits));
@@ -57,7 +54,6 @@ function transformVersion(version: PistonVersion): VersionOutput {
 		type: version.type,
 		releaseTime: version.releaseTime.toISOString(),
 
-		order: -2,
 		requires,
 
 		"+traits": traits,

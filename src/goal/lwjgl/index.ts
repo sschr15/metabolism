@@ -138,7 +138,6 @@ function generate(data: PistonVersion[], conflictUIDs: string[], filter: Version
 				releaseTime: version.firstSeen.toISOString(),
 				type: "release",
 
-				order: -1,
 				conflicts,
 				volatile: true,
 
