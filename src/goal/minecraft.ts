@@ -2,7 +2,7 @@ import { defineGoal, type VersionOutput } from "#core/goal.ts";
 import pistonMetaGameVersions from "#provider/gameVersions/index.ts";
 import { VersionFileTrait, type VersionFileDependency } from "#schema/format/v1/versionFile.ts";
 import type { PistonArgument, PistonLibrary, PistonVersion } from "#schema/pistonMeta/pistonVersion.ts";
-import { throwError } from "#util/index.ts";
+import { throwError } from "#util/general.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#util/transformation/maven.ts";
 import { isPlatformLibrary, ruleSetAppliesByDefault, transformPistonLibrary } from "#util/transformation/pistonMeta.ts";
 

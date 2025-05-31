@@ -4,7 +4,7 @@ import type { Provider } from "#core/provider.ts";
 import type { IndexFile } from "#schema/format/v1/indexFile.ts";
 import type { PackageIndexFile, PackageIndexFileVersion } from "#schema/format/v1/packageIndexFile.ts";
 import type { VersionFile } from "#schema/format/v1/versionFile.ts";
-import { setIfAbsent } from "#util/index.ts";
+import { setIfAbsent } from "#util/general.ts";
 import { sortBy } from "es-toolkit";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";

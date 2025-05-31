@@ -4,7 +4,7 @@ import pistonMetaGameVersions from "#provider/gameVersions/index.ts";
 import type { VersionFileArtifact, VersionFileDependency, VersionFileLibrary, VersionFilePlatform } from "#schema/format/v1/versionFile.ts";
 import { MavenArtifactRef } from "#schema/mavenArtifactRef.ts";
 import { PistonVersion } from "#schema/pistonMeta/pistonVersion.ts";
-import { setIfAbsent } from "#util/index.ts";
+import { setIfAbsent } from "#util/general.ts";
 import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#util/transformation/maven.ts";
 import { isPlatformLibrary, transformPistonArtifact } from "#util/transformation/pistonMeta.ts";
 import { omit } from "es-toolkit";
