@@ -1,4 +1,4 @@
-import type { MavenArtifactRef } from "#schema/mavenLibraryName.ts";
+import type { MavenArtifactRef } from "#schema/mavenArtifactRef.ts";
 
 
 export function isLWJGL3(name: MavenArtifactRef) {

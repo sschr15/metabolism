@@ -1,5 +1,5 @@
 import { string, z } from "zod/v4";
-import { MavenArtifactRef } from "../mavenLibraryName.ts";
+import { MavenArtifactRef } from "../mavenArtifactRef.ts";
 
 export const PistonRule = z.object({
 	action: z.enum(["allow", "disallow"]),

@@ -1,6 +1,6 @@
 import { HTTPCacheMode } from "#core/httpCache.ts";
 import { defineProvider } from "#core/provider.ts";
-import { MavenArtifactRef } from "#schema/mavenLibraryName.ts";
+import { MavenArtifactRef } from "#schema/mavenArtifactRef.ts";
 import { z } from "zod/v4";
 
 const LoaderVersions = z.array(z.object({

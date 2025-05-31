@@ -5,7 +5,7 @@ import { defineGoal, type VersionOutput } from "#core/goal.ts";
 import { moduleLogger } from "#core/logger.ts";
 import pistonMetaGameVersions from "#provider/gameVersions/index.ts";
 import type { VersionFileArtifact, VersionFileDependency, VersionFileLibrary, VersionFilePlatform } from "#schema/format/v1/versionFile.ts";
-import { MavenArtifactRef } from "#schema/mavenLibraryName.ts";
+import { MavenArtifactRef } from "#schema/mavenArtifactRef.ts";
 import { PistonVersion } from "#schema/pistonMeta/pistonVersion.ts";
 import { omit } from "es-toolkit";
 import { isEmpty } from "es-toolkit/compat";
