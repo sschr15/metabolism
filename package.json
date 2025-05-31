@@ -3,14 +3,13 @@
 	"private": true,
 	"version": "2.0.0",
 	"type": "module",
-	"main": "index.js",
 	"imports": {
 		"#*": "./src/*",
 		"#project/*": "./*"
 	},
 	"scripts": {
-		"start": "node --experimental-strip-types --experimental-transform-types ./src/runner/main.ts",
-		"startBun": "bun ./src/runner/main.ts",
+		"start": "node --experimental-strip-types --experimental-transform-types ./src/core/impl/main.ts",
+		"startBun": "bun ./src/core/impl/main.ts",
 		"lint": "tsc"
 	},
 	"license": "MIT",

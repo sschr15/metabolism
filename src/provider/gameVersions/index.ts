@@ -1,6 +1,6 @@
 import { HTTPCacheMode, type HTTPCache } from "#core/httpCache.ts";
+import type { DiskHTTPCache } from "#core/impl/diskHTTPCache.ts";
 import { defineProvider } from "#core/provider.ts";
-import type { DiskHTTPCache } from "#runner/diskHTTPCache.ts";
 import { PistonVersion } from "#schema/pistonMeta/pistonVersion.ts";
 import { PistonVersionManifest, PistonVersionRef } from "#schema/pistonMeta/pistonVersionManifest.ts";
 import { sortBy } from "es-toolkit";

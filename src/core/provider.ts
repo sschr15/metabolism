@@ -1,4 +1,4 @@
-import type { DiskHTTPCache } from "#runner/diskHTTPCache.ts";
+import type { DiskHTTPCache } from "#core/impl/diskHTTPCache.ts";
 
 export function defineProvider<D>(provider: Provider<D>): Provider<D> {
 	return provider;
