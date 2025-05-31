@@ -14,11 +14,11 @@ export interface VersionFile {
 	conflicts?: VersionFileDependency[];
 
 	"+traits"?: VersionFileTrait[];
-	"+tweakers"?: string[];
 
 	compatibleJavaMajors?: number[];
 	compatibleJavaName?: string;
 	"+jvmArgs"?: string[];
+	"+tweakers"?: string[];
 	mainClass?: string;
 	minecraftArguments?: string;
 

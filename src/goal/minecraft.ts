@@ -12,7 +12,7 @@ export default defineGoal({
 	provider: pistonMetaGameVersions,
 
 	generate: data => data.map(transformVersion),
-	isRecommended: (first, version) => first && version.type === "release",
+	recommend: (first, version) => first && version.type === "release",
 });
 
 function transformVersion(version: PistonVersion): VersionOutput {

@@ -1,5 +1,6 @@
 import { defineGoal, type VersionOutput } from "#core/goal.ts";
-import fabricLoaderVersions, { type FabricLoaderInfo } from "#provider/fabricLoaderVersions.ts";
+import fabricLoaderVersions, { FabricLoaderLibrary, type FabricLoaderInfo } from "#provider/fabricLoaderVersions.ts";
+import type { VersionFileLibrary } from "#schema/format/v1/versionFile.ts";
 
 export default defineGoal({
 	id: "net.fabricmc.fabric-loader",
@@ -7,7 +8,7 @@ export default defineGoal({
 	provider: fabricLoaderVersions,
 
 	generate: data => data.map(transformInfo),
-	isRecommended: first => first,
+	recommend: first => first,
 });
 
 function transformInfo(info: FabricLoaderInfo): VersionOutput {
@@ -19,7 +20,15 @@ function transformInfo(info: FabricLoaderInfo): VersionOutput {
 		requires: [{ uid: "net.fabricmc.intermediary" }],
 
 		mainClass: info.mainClass.client,
+		"+tweakers": [...info.launchWrapper.tweakers.client, ...info.launchWrapper.tweakers.common],
 
-		libraries: [...info.libraries.client, ...info.libraries.common],
+		libraries: [
+			...info.libraries.client.map(transformLoaderLibrary),
+			...info.libraries.common.map(transformLoaderLibrary),
+		],
 	};
+}
+
+function transformLoaderLibrary(library: FabricLoaderLibrary): VersionFileLibrary {
+	return { name: library.name.value, url: library.url };
 }

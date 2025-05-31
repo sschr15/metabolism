@@ -22,8 +22,8 @@ export interface PistonRule extends z.output<typeof PistonRule> { }
 
 export const PistonArtifact = z.object({
 	url: z.string(),
-	sha1: z.string(),
-	size: z.number(),
+	sha1: z.string().optional(),
+	size: z.number().optional(),
 	path: z.string().optional(),
 });
 

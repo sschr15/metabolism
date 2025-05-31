@@ -157,7 +157,7 @@ export class DiskHTTPCache implements HTTPCache {
 	async fetch(
 		key: string,
 		url: string | URL,
-		contentType: string,
+		contentType?: string,
 		strategy: HTTPCacheStrategy = { mode: HTTPCacheMode.ConditionalRequest }
 	): Promise<Response<string>> {
 		const path = this._resolvePath(key);
@@ -191,10 +191,10 @@ export class DiskHTTPCache implements HTTPCache {
 					this._logger.debug(debugInfo, `Cache entry '${key}' needs fetch (digest mismatch)'`);
 			}
 
-			const headers = new Headers({
-				"User-Agent": this._options.userAgent,
-				"Content-Type": contentType,
-			});
+			const headers = new Headers({ "User-Agent": this._options.userAgent });
+
+			if (contentType)
+				headers.set("Content-Type", contentType);
 
 			if (strategy.mode === HTTPCacheMode.ConditionalRequest && resolvedEntry) {
 				const [entry] = resolvedEntry;

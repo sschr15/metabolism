@@ -19,7 +19,7 @@ const lwjgl3 = defineGoal({
 	provider: pistonMetaGameVersions,
 
 	generate: data => generate(data, ["org.lwjgl"], isLWJGL3, () => false),
-	isRecommended: () => false,
+	recommend: () => false,
 });
 
 const lwjgl2 = defineGoal({
@@ -28,8 +28,10 @@ const lwjgl2 = defineGoal({
 	provider: pistonMetaGameVersions,
 
 	generate: data => generate(data, ["org.lwjgl3"], isLWJGL2, isLWJGL2Dependency),
-	isRecommended: () => false,
+	recommend: () => false,
 });
+
+export default [lwjgl3, lwjgl2];
 
 type VersionNamePredicate = (name: MavenArtifactRef) => boolean;
 
@@ -236,5 +238,3 @@ function mapClassifier(classifier: string): VersionFilePlatform | undefined {
 
 	return undefined;
 }
-
-export default [lwjgl3, lwjgl2];

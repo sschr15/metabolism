@@ -38,8 +38,7 @@ Generation for...
 - ☑️ LWJGL (useable)
   - (3.x.x) missing backported apple sillicon natives
   - (2.x.x) does not force version to latest on apple sillicon
-- 🚧 Fabric
-  - missing intermediary
+- ✅ Fabric
 - ❌ NeoForge
 - ❌ Forge
 - ❌ Quilt

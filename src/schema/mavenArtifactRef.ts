@@ -49,8 +49,8 @@ class MavenArtifactRef_ {
 		return new MavenArtifactRef_(this.group, this.artifact, this.version);
 	}
 
-	url(base: string, extension: string): URL {
-		const group = encodeURIComponent(this.group).replace(".", "/");
+	url(base: string, extension: string = "jar"): URL {
+		const group = encodeURIComponent(this.group).replaceAll(".", "/");
 		const artifact = encodeURIComponent(this.artifact);
 		const version = encodeURIComponent(this.version);
 		const classifier = this.classifier ? "-" + encodeURIComponent(this.classifier) : "";

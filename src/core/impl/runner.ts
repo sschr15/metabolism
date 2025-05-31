@@ -5,7 +5,7 @@ import type { IndexFile } from "#schema/format/v1/indexFile.ts";
 import type { PackageIndexFile, PackageIndexFileVersion } from "#schema/format/v1/packageIndexFile.ts";
 import type { VersionFile } from "#schema/format/v1/versionFile.ts";
 import { setIfAbsent } from "#util/general.ts";
-import { sortBy } from "es-toolkit";
+import { pick, sortBy } from "es-toolkit";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { DiskHTTPCache } from "./diskHTTPCache.ts";
@@ -124,7 +124,7 @@ async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promi
 		if (!outputPath.startsWith(outputDir))
 			throw new Error(`Version '${output.version}' escapes output directory`);
 
-		const recommended = goal.isRecommended(!anyRecommended, output);
+		const recommended = goal.recommend(!anyRecommended, output);
 		anyRecommended ||= recommended;
 
 		const versionFile = generateVersionFile(goal, output);
@@ -139,10 +139,14 @@ async function runGoal(goal: Goal, data: unknown, options: RunnerOptions): Promi
 		logger.debug(`sha-256 of '${outputPath}' is ${sha256}`);
 
 		return {
-			version: output.version,
-			type: output.type,
+			...pick(output, [
+				"version",
+				"type",
+				"releaseTime",
+				"conflicts",
+				"requires"
+			]),
 			recommended,
-			releaseTime: output.releaseTime,
 			sha256
 		};
 	}));
