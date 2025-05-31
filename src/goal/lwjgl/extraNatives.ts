@@ -16,7 +16,7 @@ export const LWJGL_EXTRA_NATIVES: ExtraNatives = {
 		},
 	},
 	// only intel mac has LWJGL 3.2.1 natives for tinyfd
-	// if an instance works on intel mac that is bad for portability :)
+	// if an instance only works on intel mac that is bad for portability :)
 	"org.lwjgl:lwjgl-tinyfd:3.2.1": {
 		windows: {
 			classifier: "natives-windows",

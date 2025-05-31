@@ -22,7 +22,6 @@
 	"dependencies": {
 		"commander": "^14.0.0",
 		"es-toolkit": "^1.38.0",
-		"p-limit": "^6.2.0",
 		"pino": "^9.7.0",
 		"pino-pretty": "^13.0.0",
 		"zod": "^3.25.7"

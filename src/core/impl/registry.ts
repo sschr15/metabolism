@@ -32,7 +32,7 @@ async function* importValues(dir: string): AsyncGenerator<any, void, unknown> {
 async function importGoals(): Promise<Map<string, Goal>> {
 	const result: Map<string, Goal> = new Map;
 
-	for await (const [path, defaultExport] of importValues("../goal")) {
+	for await (const [path, defaultExport] of importValues("../../goal")) {
 		if (typeof defaultExport.generate !== "function")
 			throw new Error(`Expected \`export default exportGoal\` (@'${path}')!`);
 
@@ -45,7 +45,7 @@ async function importGoals(): Promise<Map<string, Goal>> {
 async function importProviders(): Promise<Map<string, Provider>> {
 	const result: Map<string, Provider> = new Map;
 
-	for await (const [path, defaultExport] of importValues("../provider")) {
+	for await (const [path, defaultExport] of importValues("../../provider")) {
 		if (typeof defaultExport.provide !== "function")
 			throw new Error(`Expected \`export default exportProvider\` (@$'${path}')!`);
 
