@@ -15,7 +15,7 @@ export const OMNIARCHIVE_MAPPINGS: Record<string, { id: string; type: string; }>
 	"combat8": { id: "1.16_combat-4", type: "experiment" },
 	"combat8b": { id: "1.16_combat-5", type: "experiment" },
 	"combat8c": { id: "1.16_combat-6", type: "experiment" },
-	"1.18-exp1": { id: "1.18_experimental-snapshot-1", type: "experiemnt" },
+	"1.18-exp1": { id: "1.18_experimental-snapshot-1", type: "experiment" },
 	"1.18-exp2": { id: "1.18_experimental-snapshot-2", type: "experiment" },
 	"1.18-exp3": { id: "1.18_experimental-snapshot-3", type: "experiment" },
 	"1.18-exp4": { id: "1.18_experimental-snapshot-4", type: "experiment" },
