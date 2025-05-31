@@ -1,6 +1,5 @@
 import type { MavenArtifactRef } from "#schema/mavenArtifactRef.ts";
 
-
 export function isLWJGL3(name: MavenArtifactRef) {
 	return name.group === "org.lwjgl" && name.version.startsWith("3.");
 }
