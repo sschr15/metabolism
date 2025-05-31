@@ -1,5 +1,5 @@
-import type { VersionFileArtifact, VersionFileLibrary } from "#types/format/v1/versionFile.ts";
-import type { PistonArtifact, PistonLibrary, PistonRule } from "#types/pistonMeta/pistonVersion.ts";
+import type { VersionFileArtifact, VersionFileLibrary } from "#schema/format/v1/versionFile.ts";
+import type { PistonArtifact, PistonLibrary, PistonRule } from "#schema/pistonMeta/pistonVersion.ts";
 import { mapValues, omit } from "es-toolkit";
 import { isEmpty } from "es-toolkit/compat";
 

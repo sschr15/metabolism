@@ -1,4 +1,4 @@
-import type { VersionFile } from "./format/v1/versionFile.ts";
+import type { VersionFile } from "../schema/format/v1/versionFile.ts";
 import type { Provider } from "./provider.ts";
 
 export function defineGoal<TProvider extends Provider>(goal: Goal<TProvider>): Goal<TProvider> {

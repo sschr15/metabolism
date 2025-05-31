@@ -1,5 +1,5 @@
-import { moduleLogger } from "#logger.ts";
-import { HTTPCacheMode, type HTTPCache, type HTTPCacheStrategy, type Response } from "#types/httpCache.ts";
+import { HTTPCacheMode, type HTTPCache, type HTTPCacheStrategy, type Response } from "#core/httpCache.ts";
+import { moduleLogger } from "#core/logger.ts";
 import { retry } from "es-toolkit";
 import { Buffer } from 'node:buffer';
 import { mkdir, writeFile } from "node:fs/promises";

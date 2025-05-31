@@ -1,5 +1,5 @@
+import { defineGoal, type VersionOutput } from "#core/goal.ts";
 import fabricLoaderVersions, { type FabricLoaderInfo } from "#provider/fabricLoaderVersions.ts";
-import { defineGoal, type VersionOutput } from "#types/goal.ts";
 
 export default defineGoal({
 	id: "net.fabricmc.fabric-loader",

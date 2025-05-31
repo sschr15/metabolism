@@ -1,10 +1,10 @@
 import { setIfAbsent } from "#common/index.ts";
-import { moduleLogger } from "#logger.ts";
-import type { IndexFile } from "#types/format/v1/indexFile.ts";
-import type { PackageIndexFile, PackageIndexFileVersion } from "#types/format/v1/packageIndexFile.ts";
-import type { VersionFile } from "#types/format/v1/versionFile.ts";
-import { type Goal, type VersionOutput } from "#types/goal.ts";
-import type { Provider } from "#types/provider.ts";
+import { type Goal, type VersionOutput } from "#core/goal.ts";
+import { moduleLogger } from "#core/logger.ts";
+import type { Provider } from "#core/provider.ts";
+import type { IndexFile } from "#schema/format/v1/indexFile.ts";
+import type { PackageIndexFile, PackageIndexFileVersion } from "#schema/format/v1/packageIndexFile.ts";
+import type { VersionFile } from "#schema/format/v1/versionFile.ts";
 import { sortBy } from "es-toolkit";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";

@@ -1,6 +1,6 @@
+import type { Goal } from "#core/goal.ts";
+import type { Provider } from "#core/provider.ts";
 import { default as packageJSON } from "#project/package.json" with { type: "json" };
-import type { Goal } from "#types/goal.ts";
-import type { Provider } from "#types/provider.ts";
 import { Command, InvalidArgumentError } from "commander";
 import { build, prepare, sync } from "./index.ts";
 import { GOALS, PROVIDERS } from "./registry.ts";

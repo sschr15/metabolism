@@ -1,4 +1,4 @@
-import type { VersionFilePlatform } from "#types/format/v1/versionFile.ts";
+import type { VersionFilePlatform } from "#schema/format/v1/versionFile.ts";
 import type { ArtifactWithClassifier } from "./index.ts";
 
 type ExtraNatives = Record<string, Partial<Record<VersionFilePlatform, ArtifactWithClassifier>>>;
