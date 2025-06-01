@@ -1,7 +1,7 @@
 import { HTTPCacheMode, type HTTPCache, type HTTPCacheStrategy, type Response } from "#core/httpCache.ts";
 import { moduleLogger } from "#core/logger.ts";
 import { setIfAbsent } from "#util/general.ts";
-import { delay, Mutex, Semaphore } from "es-toolkit";
+import { delay, Mutex, pick, Semaphore } from "es-toolkit";
 import { Buffer } from 'node:buffer';
 import { mkdir, writeFile } from "node:fs/promises";
 import path, { dirname } from "node:path";
@@ -48,7 +48,7 @@ export class DiskHTTPCache implements HTTPCache {
 		this.logger = logger.child({ dir: this.options.dir });
 	}
 
-	private async doFetch(
+	private async cachedFetch(
 		key: string,
 		url: string | URL,
 		withBody: boolean,
@@ -159,32 +159,36 @@ export class DiskHTTPCache implements HTTPCache {
 		};
 	}
 
-	async fetchText(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<Response<string>> {
-		const response = await this.doFetch(key, url, true, strategy);
+	private makeBaseResponse(entry: CacheEntry) {
+		return pick(entry.info, ["lastModified", "eTag"]);
+	}
 
-		if (response.body === undefined)
+	async fetchText(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<Response<string>> {
+		const entry = await this.cachedFetch(key, url, true, strategy);
+
+		if (entry.body === undefined)
 			throw new Error("BUG: Missing body!");
 
 		return {
-			...response.info,
-			body: response.body,
+			...this.makeBaseResponse(entry),
+			body: entry.body,
 		};
 	}
 
 	async fetchJSON(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<Response<unknown>> {
-		const result = await this.fetchText(key, url, strategy);
+		const response = await this.fetchText(key, url, strategy);
 
 		return {
-			...result,
-			body: JSON.parse(result.body)
+			...response,
+			body: JSON.parse(response.body)
 		};
 	}
 
 	async fetchMetadata(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<Response<undefined>> {
-		const response = await this.doFetch(key, url, false, strategy);
+		const entry = await this.cachedFetch(key, url, false, strategy);
 
 		return {
-			...response.info,
+			...this.makeBaseResponse(entry),
 			body: undefined,
 		};
 	}
