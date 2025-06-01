@@ -1,30 +1,37 @@
 export interface HTTPCache {
 	/**
-	 * Fetch data over HTTP and store for later use or reuse stored data if it is up-to-date.
+	 * Fetch metadata over HTTP and store for later use or reuse stored data if it is up-to-date.
+	 * @param key Cache key
+	 * @param url URL to HEAD
+	 * @param contentType Content-Type header
+	 * @param strategy Caching strategy - defaults to ConditionalRequest
+	 * @returns body text
+	 */
+	fetchMetadata(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<Response<undefined>>;
+
+	/**
+	 * Fetch text over HTTP and store for later use or reuse stored data if it is up-to-date.
 	 * @param key Cache key
 	 * @param url URL to GET
 	 * @param contentType Content-Type header
-	 * @param strategy Caching strategy - defaults to IfModifiedSince
+	 * @param strategy Caching strategy - defaults to ConditionalRequest
 	 * @returns body text
 	 */
-	fetchContent(key: string, url: string | URL, contentType: string, strategy?: HTTPCacheStrategy): Promise<string>;
+	fetchText(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<Response<string>>;
 
 	/**
 	 * Fetch JSON over HTTP and store for later use or reuse stored data if it is up-to-date.
 	 * Sets Content-Type to application/json and parses with JSON.parse.
 	 * @param key Cache key
 	 * @param url URL to GET
-	 * @param strategy Caching strategy - defaults to IfModifiedSince
+	 * @param strategy Caching strategy - defaults to ConditionalRequest
 	 */
-	fetchJSONContent(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<unknown>;
-
-	fetch(key: string, url: string | URL, contentType: string, strategy?: HTTPCacheStrategy): Promise<Response<string>>;
-
 	fetchJSON(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<Response<unknown>>;
 }
 
 export interface Response<T> {
-	lastModified: Date | null;
+	lastModified?: Date;
+	eTag?: string;
 	body: T;
 }
 

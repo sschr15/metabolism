@@ -19,10 +19,10 @@ async function pistonMetaVersions(http: DiskHTTPCache): Promise<PistonVersion[]>
 	const base = "piston-meta";
 
 	const manifest = PistonVersionManifest.parse(
-		await http.fetchJSONContent(
+		(await http.fetchJSON(
 			base + "/versions.json",
 			"https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
-		)
+		)).body
 	);
 
 	return await getVersions(http, base, manifest.versions);
@@ -33,10 +33,10 @@ async function omniarchiveVersions(http: DiskHTTPCache): Promise<PistonVersion[]
 	const base = "omniarchive";
 
 	const manifest = PistonVersionManifest.parse(
-		await http.fetchJSONContent(
+		(await http.fetchJSON(
 			base + "/manifest.json",
 			"https://meta.omniarchive.uk/v1/manifest.json"
-		)
+		)).body
 	);
 
 	const versions = manifest.versions
@@ -48,14 +48,15 @@ async function omniarchiveVersions(http: DiskHTTPCache): Promise<PistonVersion[]
 
 async function getVersions(http: HTTPCache, base: string, versions: PistonVersionRef[]): Promise<PistonVersion[]> {
 	return await Promise.all(versions.map(async (version): Promise<PistonVersion> => {
-		const json = await http.fetchJSONContent(
+		const response = await http.fetchJSON(
 			base + "/" + version.id + ".json",
 			version.url,
 			{ mode: HTTPCacheMode.CompareLocalDigest, algorithm: "sha-1", expected: version.sha1 }
 		);
+		const parsed = PistonVersion.parse(response.body);
 
 		// manifest ID and type should take precidence - in some cases we override it
-		return { ...PistonVersion.parse(json), id: version.id, type: version.type };
+		return { ...parsed, id: version.id, type: version.type };
 	}));
 }
 

@@ -9,10 +9,10 @@ export default defineProvider({
 
 	async provide(http) {
 		const list = FabricMetaVersions.parse(
-			await http.fetchJSONContent(
+			(await http.fetchJSON(
 				"versions_loader.json",
 				"https://meta.fabricmc.net/v2/versions/loader"
-			)
+			)).body
 		);
 
 		return await Promise.all(list.map(async (version): Promise<FabricLoaderInfo> => {
@@ -24,7 +24,7 @@ export default defineProvider({
 				{ mode: HTTPCacheMode.Eternal }
 			);
 
-			if (infoResponse.lastModified === null)
+			if (!infoResponse.lastModified)
 				throw new Error("Missing Last-Modified header");
 
 			const info = LoaderInfo.parse(infoResponse.body);

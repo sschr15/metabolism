@@ -10,26 +10,19 @@ import z, { ZodError } from "zod/v4";
 import { deleteFileIfExists, digest, readFileIfExists } from "./util.ts";
 
 const logger = moduleLogger();
-const requestLimiter = new Semaphore(16); // TODO: don't hardcode
 
-async function limit<T>(callback: () => Promise<T>) {
-	await requestLimiter.acquire();
-
-	try {
-		return await callback();
-	} finally {
-		requestLimiter.release();
-	}
-}
-
-const CacheEntry = z.object({
-	sha1: z.string().transform(input => Buffer.from(input, "hex") as Buffer),
+const CacheEntryInfo = z.object({
+	sha1: z.string().transform(input => Buffer.from(input, "hex") as Buffer).optional(),
 	lastModified: z.coerce.date().optional(),
 	eTag: z.string().optional(),
 });
 
-interface CacheEntry extends z.output<typeof CacheEntry> { }
-type ResolvedCacheEntry = [CacheEntry, string];
+type CacheEntryInfo = z.infer<typeof CacheEntryInfo>;
+
+interface CacheEntry {
+	info: CacheEntryInfo;
+	body?: string;
+};
 
 export interface DiskHTTPCacheOptions {
 	userAgent: string;
@@ -38,145 +31,44 @@ export interface DiskHTTPCacheOptions {
 	encoding: BufferEncoding;
 }
 
+// TODO: despair
 export class DiskHTTPCache implements HTTPCache {
-	private _options: DiskHTTPCacheOptions;
-	private _usedEntries: Map<string, Mutex>;
-	private _logger: Logger;
+	private options: DiskHTTPCacheOptions;
+	private locks: Map<string, Mutex>;
+	private logger: Logger;
+	private static requestLimiter = new Semaphore(16);
 
 	constructor(options: DiskHTTPCacheOptions) {
-		this._options = {
+		this.options = {
 			...options,
 			dir: path.join(options.dir, path.sep)
 		};
 
-		this._usedEntries = new Map;
-		this._logger = logger.child({ dir: this._options.dir });
+		this.locks = new Map;
+		this.logger = logger.child({ dir: this.options.dir });
 	}
 
-	private _resolvePath(key: string) {
-		const result = path.join(this._options.dir, key);
-
-		if (result.includes("\0"))
-			throw new Error("Key contains null bytes");
-
-		if (!result.startsWith(this._options.dir))
-			throw new Error(`Key '${key}' escapes cache base directory`);
-
-		return result;
-	}
-
-	private _resolveEntryPath(value: string) {
-		return value + ".entry.json";
-	}
-
-	private async _get(path: string): Promise<ResolvedCacheEntry | null> {
-		const entryData = await readFileIfExists(this._resolveEntryPath(path), this._options.encoding);
-
-		if (entryData === null)
-			return null;
-
-		try {
-			var cacheEntry = CacheEntry.parse(JSON.parse(entryData));
-		} catch (error) {
-			if (!(error instanceof SyntaxError || error instanceof ZodError))
-				throw error;
-
-			this._logger.warn(`Corrupt cache entry '${path}'`);
-			return null;
-		}
-
-		const fileData = await readFileIfExists(path, "utf-8");
-
-		if (fileData === null)
-			return null;
-
-		const buffer = await digest("sha-1", fileData);
-
-		if (!buffer.equals(cacheEntry.sha1)) {
-			this._logger.warn(`Corrupt cache value for '${path}'`);
-			return null;
-		}
-
-		return [cacheEntry, fileData];
-	}
-
-	private async _put(path: string, entry: CacheEntry, value: string): Promise<void> {
-		const entryPath = this._resolveEntryPath(path);
-
-		// delete first to invalidate
-		if (await mkdir(dirname(path), { recursive: true }) === undefined)
-			await deleteFileIfExists(entryPath);
-
-		await writeFile(path, value, this._options.encoding);
-		await writeFile(entryPath, JSON.stringify({ sha1: entry.sha1.toString("hex"), lastModified: entry.lastModified?.toISOString() }));
-	}
-
-	private async _acquire<T>(entryPath: string, callback: () => Promise<T>) {
-		// intetional memory leak - we are tracking all of the entries which have been hit/created
-		const mutex = setIfAbsent(this._usedEntries, entryPath, new Mutex);
-		await mutex.acquire();
-
-		try {
-			return await callback();
-		} finally {
-			mutex.release();
-		}
-	}
-
-	private async _save(entryPath: string, response: globalThis.Response): Promise<ResolvedCacheEntry> {
-		const lastModifiedHeader = response.headers.get("Last-Modified");
-		const entryLastModified = lastModifiedHeader ? new Date(lastModifiedHeader) : undefined;
-
-		if (entryLastModified && isNaN(entryLastModified.getTime()))
-			throw new Error(`Invalid Last-Modified header: '${lastModifiedHeader}'`);
-
-		const entryETag = response.headers.get("ETag") ?? undefined;
-
-		const entryValue = await response.text();
-
-		const entry: CacheEntry = {
-			sha1: await digest("sha-1", entryValue),
-			lastModified: entryLastModified,
-			eTag: entryETag,
-		};
-
-		this._put(entryPath, entry, entryValue);
-
-		return [entry, entryValue];
-	}
-
-	private _makeResponse(resolvedEntry: ResolvedCacheEntry): Response<string> {
-		const [entry, value] = resolvedEntry;
-
-		return {
-			lastModified: entry.lastModified ?? null,
-			body: value,
-		};
-	}
-
-	async fetch(
+	private async doFetch(
 		key: string,
 		url: string | URL,
-		contentType?: string,
+		withBody: boolean,
 		strategy: HTTPCacheStrategy = { mode: HTTPCacheMode.ConditionalRequest }
-	): Promise<Response<string>> {
-		const path = this._resolvePath(key);
+	): Promise<CacheEntry> {
+		const path = this.resolvePath(key);
 
-		return this._acquire(path, async () => {
-			const resolvedEntry = await this._get(path);
+		return this.acquire(path, async () => {
+			const resolvedEntry = await this.retrieve(path, withBody);
 
-			if ((this._options.assumeUpToDate || strategy.mode === HTTPCacheMode.Eternal) && resolvedEntry) {
-				this._logger.debug(`Assuming cache entry '${key}' is up-to-date`);
-				return this._makeResponse(resolvedEntry);
+			if ((this.options.assumeUpToDate || strategy.mode === HTTPCacheMode.Eternal) && resolvedEntry) {
+				this.logger.debug(`Assuming cache entry '${key}' is up-to-date`);
+				return resolvedEntry;
 			}
 
 			// TODO: this is really bad for perf for some reason
-			if (strategy.mode === HTTPCacheMode.CompareLocalDigest && resolvedEntry) {
-				const [entry, value] = resolvedEntry;
-
+			if (strategy.mode === HTTPCacheMode.CompareLocalDigest && resolvedEntry?.body && resolvedEntry.info.sha1) {
 				const digestResult = strategy.algorithm === "sha-1"
-					? entry.sha1
-					: await digest(strategy.algorithm, value);
+					? resolvedEntry.info.sha1
+					: await digest(strategy.algorithm, resolvedEntry.body);
 
 				// "hex" argument is ignored if it's a string lol
 				const debugInfo = { expected: strategy.expected.toString("hex") };
@@ -185,68 +77,102 @@ export class DiskHTTPCache implements HTTPCache {
 					: strategy.expected;
 
 				if (digestResult.equals(expected)) {
-					this._logger.debug(debugInfo, `Cache entry '${key}' is up-to-date (matching digest)`);
-					return this._makeResponse(resolvedEntry);
+					this.logger.debug(debugInfo, `Cache entry '${key}' is up-to-date (matching digest)`);
+					return resolvedEntry;
 				} else
-					this._logger.debug(debugInfo, `Cache entry '${key}' needs fetch (digest mismatch)'`);
+					this.logger.debug(debugInfo, `Cache entry '${key}' needs fetch (digest mismatch)'`);
 			}
 
-			const headers = new Headers({ "User-Agent": this._options.userAgent });
-
-			if (contentType)
-				headers.set("Content-Type", contentType);
+			const headers = new Headers({ "User-Agent": this.options.userAgent });
 
 			if (strategy.mode === HTTPCacheMode.ConditionalRequest && resolvedEntry) {
-				const [entry] = resolvedEntry;
-
-				if (entry.eTag)
-					headers.set("If-None-Match", entry.eTag);
-				else if (entry.lastModified)
-					headers.set("If-Modified-Since", entry.lastModified.toUTCString());
+				if (resolvedEntry.info.eTag)
+					headers.set("If-None-Match", resolvedEntry.info.eTag);
+				else if (resolvedEntry.info.lastModified)
+					headers.set("If-Modified-Since", resolvedEntry.info.lastModified.toUTCString());
 			}
 
-			let waitPeriod = 500;
-			let response: globalThis.Response;
-
-			for (let retries = 0; ; ++retries) {
-				try {
-					this._logger.debug(`Sending a request to '${url}' for '${key}'`);
-
-					response = await limit(() => fetch(url, { headers }));
-
-					if (response.status >= 500 && response.status < 600)
-						throw new Error(`Got ${response.status} ('${response.statusText}')`);
-
-					break;
-				} catch (error) {
-					if (retries > 5)
-						throw new Error("Maximum retries exceeded", { cause: error });
-
-					logger.warn(error, `Retrying '${url}' in ${waitPeriod / 1000}s due to error`);
-
-					await delay(waitPeriod);
-					waitPeriod *= 2;
-				}
-			}
+			const response = await this.fetch(key, url, { method: withBody ? "GET" : "HEAD", headers });
 
 			if (strategy.mode === HTTPCacheMode.ConditionalRequest && response.status === 304 && resolvedEntry) {
-				this._logger.debug(`Cache entry '${key}' is up-to-date (304)`);
-				return this._makeResponse(resolvedEntry);
+				this.logger.debug(`Cache entry '${key}' is up-to-date (304)`);
+				return resolvedEntry;
 			}
 
 			if (!response.ok || response.status === 204)
 				throw new Error(`Got ${response.status} ('${response.statusText}') for '${url}'; did not retry as it is not a 5xx error`);
 
-			const newEntry = await this._save(path, response);
+			const newEntry = await this.makeNewEntry(response, withBody);
 
-			this._logger.debug(`Cache entry '${key}' ${resolvedEntry === null ? "created" : "updated"} from response`);
+			await this.store(path, newEntry);
 
-			return this._makeResponse(newEntry);
+			this.logger.debug(`Cache entry '${key}' ${resolvedEntry === null ? "created" : "updated"} from response`);
+
+			return newEntry;
 		});
 	}
 
+	private async fetch(key: string, url: URL | string, options?: RequestInit) {
+		let waitPeriod = 1000;
+
+		for (let retries = 0; ; ++retries) {
+			try {
+				this.logger.debug(`Sending a request to '${url}' for '${key}'`);
+
+				const response = await this.limit(() => fetch(url, options));
+
+				if (response.status >= 500 && response.status < 600)
+					throw new Error(`Got ${response.status} ('${response.statusText}')`);
+
+				return response;
+			} catch (error) {
+				if (retries > 5)
+					throw new Error("Maximum retries exceeded", { cause: error });
+
+				logger.warn(error, `Retrying '${url}' in ${waitPeriod / 1000}s due to error`);
+
+				await delay(waitPeriod);
+				waitPeriod *= 2;
+			}
+		}
+	}
+
+	private async makeNewEntry(response: globalThis.Response, withBody: boolean): Promise<CacheEntry> {
+		const body = withBody ? await response.text() : undefined;
+		const sha1 = body ? await digest("sha-1", body) : undefined;
+
+		const lastModifiedRaw = response.headers.get("Last-Modified");
+		const lastModified = lastModifiedRaw ? new Date(lastModifiedRaw) : undefined;
+
+		if (lastModified && isNaN(lastModified.getTime()))
+			throw new Error(`Invalid Last-Modified timestamp: '${lastModifiedRaw}'`);
+
+		const eTag = response.headers.get("ETag") ?? undefined;
+
+		return {
+			info: {
+				sha1,
+				eTag,
+				lastModified,
+			},
+			body,
+		};
+	}
+
+	async fetchText(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<Response<string>> {
+		const response = await this.doFetch(key, url, true, strategy);
+
+		if (response.body === undefined)
+			throw new Error("BUG: Missing body!");
+
+		return {
+			...response.info,
+			body: response.body,
+		};
+	}
+
 	async fetchJSON(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<Response<unknown>> {
-		const result = await this.fetch(key, url, "application/json", strategy);
+		const result = await this.fetchText(key, url, strategy);
 
 		return {
 			...result,
@@ -254,15 +180,109 @@ export class DiskHTTPCache implements HTTPCache {
 		};
 	}
 
-	async fetchContent(key: string, url: string | URL, contentType: string, strategy?: HTTPCacheStrategy): Promise<string> {
-		const response = await this.fetch(key, url, contentType, strategy);
+	async fetchMetadata(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<Response<undefined>> {
+		const response = await this.doFetch(key, url, false, strategy);
 
-		return response.body;
+		return {
+			...response.info,
+			body: undefined,
+		};
 	}
 
-	async fetchJSONContent(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<unknown> {
-		const response = await this.fetchJSON(key, url, strategy);
+	private async retrieve(path: string, requireBody: boolean): Promise<CacheEntry | null> {
+		const entryData = await readFileIfExists(this.resolveInfoPath(path), this.options.encoding);
 
-		return response.body;
+		if (entryData === null)
+			return null;
+
+		try {
+			var info = CacheEntryInfo.parse(JSON.parse(entryData));
+		} catch (error) {
+			if (!(error instanceof SyntaxError || error instanceof ZodError))
+				throw error;
+
+			this.logger.warn(`Corrupt cache entry '${path}'`);
+			return null;
+		}
+
+		if (info.sha1 === undefined) {
+			if (requireBody)
+				return null;
+			else
+				return { info };
+		}
+
+		const body = await readFileIfExists(path, "utf-8");
+
+		if (body === null)
+			return null;
+
+		const bodyDigest = await digest("sha-1", body);
+
+		if (!bodyDigest.equals(info.sha1)) {
+			this.logger.warn(`Corrupt cache body '${path}'`);
+			return null;
+		}
+
+		return { info, body: body };
+	}
+
+	private async store(path: string, entry: CacheEntry): Promise<void> {
+		const infoPath = this.resolveInfoPath(path);
+
+		// delete first to invalidate
+		if (await mkdir(dirname(path), { recursive: true }) === undefined)
+			await deleteFileIfExists(infoPath);
+
+		if (entry.body)
+			await writeFile(path, entry.body, this.options.encoding);
+		else
+			await deleteFileIfExists(path);
+
+		await writeFile(infoPath, JSON.stringify({
+			sha1: entry.info.sha1?.toString("hex"),
+			eTag: entry.info.eTag,
+			lastModified: entry.info.lastModified?.toISOString(),
+		}));
+	}
+
+	private resolvePath(key: string): string {
+		const result = path.join(this.options.dir, key);
+
+		if (result.includes("\0"))
+			throw new Error("Key contains null bytes");
+
+		if (!result.startsWith(this.options.dir))
+			throw new Error(`Key '${key}' escapes cache base directory`);
+
+		return result;
+	}
+
+	private resolveInfoPath(value: string): string {
+		return value + ".info.json";
+	}
+
+	private async acquire<T>(entryPath: string, callback: () => Promise<T>): Promise<T> {
+		const mutex = setIfAbsent(this.locks, entryPath, new Mutex);
+		await mutex.acquire();
+
+		try {
+			return await callback();
+		} finally {
+			mutex.release();
+
+			if (!mutex.isLocked)
+				this.locks.delete(entryPath);
+		}
+	}
+
+	private async limit<T>(callback: () => Promise<T>): Promise<T> {
+		await DiskHTTPCache.requestLimiter.acquire();
+
+		try {
+			return await callback();
+		} finally {
+			DiskHTTPCache.requestLimiter.release();
+		}
 	}
 }

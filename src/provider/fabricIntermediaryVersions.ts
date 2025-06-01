@@ -7,27 +7,25 @@ export default defineProvider({
 
 	async provide(http) {
 		const list = FabricMetaVersions.parse(
-			await http.fetchJSONContent(
+			(await http.fetchJSON(
 				"versions_loader.json",
 				"https://meta.fabricmc.net/v2/versions/intermediary"
-			)
+			)).body
 		);
 
 		return await Promise.all(list.map(async (version): Promise<FabricIntermediaryVersion> => {
-			const infoResponse = await http.fetch(
-				version.version + ".jar.sha1",
-				version.maven.url("https://maven.fabricmc.net", "jar.sha1"),
-				undefined,
+			const infoResponse = await http.fetchMetadata(
+				version.version + ".jar",
+				version.maven.url("https://maven.fabricmc.net", "jar"),
 				{ mode: HTTPCacheMode.Eternal }
 			);
 
-			if (infoResponse.lastModified === null)
+			if (!infoResponse.lastModified)
 				throw new Error("Missing Last-Modified header");
 
 			return {
 				...version,
 				lastModified: infoResponse.lastModified,
-				sha1: infoResponse.body,
 			};
 		}));
 	},
@@ -35,5 +33,4 @@ export default defineProvider({
 
 export interface FabricIntermediaryVersion extends FabricMetaVersion {
 	lastModified: Date;
-	sha1: string;
 }
