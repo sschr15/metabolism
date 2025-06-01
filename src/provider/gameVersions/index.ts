@@ -3,6 +3,7 @@ import type { DiskHTTPCache } from "#core/impl/diskHTTPCache.ts";
 import { defineProvider } from "#core/provider.ts";
 import { PistonVersion } from "#schema/pistonMeta/pistonVersion.ts";
 import { PistonVersionManifest, PistonVersionRef } from "#schema/pistonMeta/pistonVersionManifest.ts";
+import { OMNIARCHIVE_META, PISTON_META } from "#util/constants/domains.ts";
 import { sortBy } from "es-toolkit";
 import { OMNIARCHIVE_MAPPINGS } from "./omniarchiveMappings.ts";
 
@@ -21,7 +22,7 @@ async function pistonMetaVersions(http: DiskHTTPCache): Promise<PistonVersion[]>
 	const manifest = PistonVersionManifest.parse(
 		(await http.fetchJSON(
 			base + "/versions.json",
-			"https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
+			new URL("mc/game/version_manifest_v2.json", PISTON_META)
 		)).body
 	);
 
@@ -35,7 +36,7 @@ async function omniarchiveVersions(http: DiskHTTPCache): Promise<PistonVersion[]
 	const manifest = PistonVersionManifest.parse(
 		(await http.fetchJSON(
 			base + "/manifest.json",
-			"https://meta.omniarchive.uk/v1/manifest.json"
+			new URL("v1/manifest.json", OMNIARCHIVE_META)
 		)).body
 	);
 

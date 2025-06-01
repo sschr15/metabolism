@@ -2,6 +2,7 @@ import { HTTPCacheMode } from "#core/httpCache.ts";
 import { defineProvider } from "#core/provider.ts";
 import { FabricMetaVersions } from "#schema/fabricMeta.ts";
 import { MavenArtifactRef } from "#schema/mavenArtifactRef.ts";
+import { FABRIC_MAVEN, FABRIC_META } from "#util/constants/domains.ts";
 import { z } from "zod/v4";
 
 export default defineProvider({
@@ -11,16 +12,14 @@ export default defineProvider({
 		const list = FabricMetaVersions.parse(
 			(await http.fetchJSON(
 				"versions_loader.json",
-				"https://meta.fabricmc.net/v2/versions/loader"
+				new URL("v2/versions/loader", FABRIC_META)
 			)).body
 		);
 
 		return await Promise.all(list.map(async (version): Promise<FabricLoaderInfo> => {
-			const mavenBase = "https://maven.fabricmc.net";
-
 			const infoResponse = await http.fetchJSON(
 				version.version + ".json",
-				version.maven.url(mavenBase, "json"),
+				version.maven.url(FABRIC_MAVEN, "json"),
 				{ mode: HTTPCacheMode.Eternal }
 			);
 
@@ -33,7 +32,7 @@ export default defineProvider({
 				...info,
 				libraries: {
 					...info.libraries,
-					common: [{ name: version.maven, url: mavenBase }, ...info.libraries.common],
+					common: [{ name: version.maven, url: FABRIC_MAVEN }, ...info.libraries.common],
 				},
 				version: version.version,
 				lastModified: infoResponse.lastModified,

@@ -1,5 +1,6 @@
 import { defineGoal, type VersionOutput } from "#core/goal.ts";
 import fabricIntermediaryVersions, { type FabricIntermediaryVersion } from "#provider/fabricIntermediaryVersions.ts";
+import { FABRIC_MAVEN } from "#util/constants/domains.ts";
 
 export default defineGoal({
 	id: "net.fabricmc.intermediary",
@@ -19,6 +20,6 @@ function transformVersion(version: FabricIntermediaryVersion): VersionOutput {
 		requires: [{ uid: "net.minecraft", equals: version.version }],
 		volatile: true,
 
-		libraries: [{ name: version.maven.value, url: "https://maven.fabricmc.net", }],
+		libraries: [{ name: version.maven.value, url: FABRIC_MAVEN, }],
 	};
 }
