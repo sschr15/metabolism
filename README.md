@@ -41,7 +41,7 @@ Generation for...
 - ✅ Fabric
 - ❌ NeoForge
 - ❌ Forge
-- ❌ Quilt
+- ✅ Quilt
 - ❌ LiteLoader
 
 ## Why
