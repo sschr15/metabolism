@@ -3,7 +3,7 @@ import type { DiskCachedClient } from "#core/impl/http/diskCachedClient.ts";
 import { defineProvider } from "#core/provider.ts";
 import { FabricInstallerData } from "#schema/fabric/fabricInstallerData.ts";
 import { FabricMetaVersion, FabricMetaVersions } from "#schema/fabric/fabricMeta.ts";
-import { FABRIC_MAVEN, FABRIC_META, QUILT_MAVEN, QUILT_META } from "#util/constants/domains.ts";
+import { FABRIC_MAVEN, FABRIC_META, QUILT_MAVEN, QUILT_META } from "#util/constants/urls.ts";
 
 export const fabricLoaderVersions = defineProvider({
 	id: "fabric-loader-versions",
@@ -14,7 +14,7 @@ export const fabricLoaderVersions = defineProvider({
 export const quiltLoaderVersions = defineProvider({
 	id: "quilt-loader-versions",
 
-	provide: http => provide(http, new URL("v3/", QUILT_META), new URL("repository/release/", QUILT_MAVEN)),
+	provide: http => provide(http, new URL("v3/", QUILT_META), QUILT_MAVEN),
 });
 
 export default [fabricLoaderVersions, quiltLoaderVersions];

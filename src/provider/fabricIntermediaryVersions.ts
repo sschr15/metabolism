@@ -1,6 +1,6 @@
 import { defineProvider } from "#core/provider.ts";
 import { FabricMetaVersion, FabricMetaVersions } from "#schema/fabric/fabricMeta.ts";
-import { FABRIC_MAVEN, FABRIC_META } from "#util/constants/domains.ts";
+import { FABRIC_MAVEN, FABRIC_META } from "#util/constants/urls.ts";
 
 export default defineProvider({
 	id: "fabric-intermediary-versions",

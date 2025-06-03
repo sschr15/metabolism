@@ -3,7 +3,7 @@ import type { DiskCachedClient } from "#core/impl/http/diskCachedClient.ts";
 import { defineProvider } from "#core/provider.ts";
 import { PistonVersion } from "#schema/pistonMeta/pistonVersion.ts";
 import { PistonVersionManifest, PistonVersionRef } from "#schema/pistonMeta/pistonVersionManifest.ts";
-import { OMNIARCHIVE_META, PISTON_META } from "#util/constants/domains.ts";
+import { OMNIARCHIVE_META, PISTON_META } from "#util/constants/urls.ts";
 import { sortBy } from "es-toolkit";
 import { OMNIARCHIVE_MAPPINGS } from "./omniarchiveMappings.ts";
 

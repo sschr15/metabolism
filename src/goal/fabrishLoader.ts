@@ -2,7 +2,7 @@ import { defineGoal, type VersionOutput } from "#core/goal.ts";
 import { fabricLoaderVersions, quiltLoaderVersions, type FabricLoaderVersion } from "#provider/fabrishLoaderVersions.ts";
 import type { FabricLoaderLibrary } from "#schema/fabric/fabricInstallerData.ts";
 import type { VersionFileLibrary } from "#schema/format/v1/versionFile.ts";
-import { FABRIC_MAVEN, QUILT_MAVEN } from "#util/constants/domains.ts";
+import { FABRIC_MAVEN, QUILT_MAVEN } from "#util/constants/urls.ts";
 
 const fabricLoader = defineGoal({
 	id: "net.fabricmc.fabric-loader",
