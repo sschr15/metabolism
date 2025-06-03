@@ -1,5 +1,5 @@
 import { defineProvider } from "#core/provider.ts";
-import { FabricMetaVersion, FabricMetaVersions } from "#schema/fabricMeta.ts";
+import { FabricMetaVersion, FabricMetaVersions } from "#schema/fabric/fabricMeta.ts";
 import { FABRIC_MAVEN, FABRIC_META } from "#util/constants/domains.ts";
 
 export default defineProvider({
@@ -8,7 +8,7 @@ export default defineProvider({
 	async provide(http) {
 		const list = FabricMetaVersions.parse(
 			(await http.getCached(
-				"versions_loader.json",
+				"intermediary-versions.json",
 				new URL("v2/versions/intermediary", FABRIC_META)
 			)).json()
 		);

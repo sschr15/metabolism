@@ -1,5 +1,5 @@
 import { z } from "zod/v4";
-import { MavenArtifactRef } from "./mavenArtifactRef.ts";
+import { MavenArtifactRef } from "../mavenArtifactRef.ts";
 
 export const FabricMetaVersion = z.object({
 	maven: MavenArtifactRef,

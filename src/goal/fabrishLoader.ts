@@ -1,13 +1,15 @@
 import { defineGoal, type VersionOutput } from "#core/goal.ts";
-import { FabricLoaderLibrary, fabricLoaderVersions, quiltLoaderVersions, type FabricLoaderInfo } from "#provider/fabrishLoaderVersions.ts";
+import { fabricLoaderVersions, quiltLoaderVersions, type FabricLoaderVersion } from "#provider/fabrishLoaderVersions.ts";
+import type { FabricLoaderLibrary } from "#schema/fabric/fabricInstallerData.ts";
 import type { VersionFileLibrary } from "#schema/format/v1/versionFile.ts";
+import { FABRIC_MAVEN, QUILT_MAVEN } from "#util/constants/domains.ts";
 
 const fabricLoader = defineGoal({
 	id: "net.fabricmc.fabric-loader",
 	name: "Fabric Loader",
 	provider: fabricLoaderVersions,
 
-	generate: data => data.map(info => ({ ...transformInfo(info), type: "release" })),
+	generate: data => data.map(info => ({ ...transformVersion(info, FABRIC_MAVEN), type: "release" })),
 	recommend: first => first,
 });
 
@@ -31,26 +33,29 @@ const quiltLoader = defineGoal({
 				type = suffix;
 		}
 
-		return { ...transformInfo(info), type };
+		return { ...transformVersion(info, QUILT_MAVEN), type };
 	}),
 	recommend: first => first,
 });
 
 export default [fabricLoader, quiltLoader];
 
-function transformInfo(info: FabricLoaderInfo): VersionOutput {
+function transformVersion(version: FabricLoaderVersion, maven: string): VersionOutput {
+	const data = version.installerData;
+
 	return {
-		version: info.version,
-		releaseTime: info.lastModified.toISOString(),
+		version: version.version,
+		releaseTime: version.lastModified.toISOString(),
 
 		requires: [{ uid: "net.fabricmc.intermediary" }],
 
-		mainClass: info.mainClass.client,
-		"+tweakers": [...info.launchWrapper.tweakers.client, ...info.launchWrapper.tweakers.common],
+		mainClass: data.mainClass.client,
+		"+tweakers": [...data.launchWrapper.tweakers.client, ...data.launchWrapper.tweakers.common],
 
 		libraries: [
-			...info.libraries.client.map(transformLoaderLibrary),
-			...info.libraries.common.map(transformLoaderLibrary),
+			{ name: version.maven.value, url: maven.toString() },
+			...data.libraries.client.map(transformLoaderLibrary),
+			...data.libraries.common.map(transformLoaderLibrary),
 		],
 	};
 }

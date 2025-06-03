@@ -1,5 +1,6 @@
 import { HTTPCacheMode, type CompareLocalDigestStrategy, type HTTPCacheStrategy, type HTTPClient, type Metadata, type Response } from "#core/httpClient.ts";
 import { moduleLogger } from "#core/logger.ts";
+import { HttpReader, TextWriter, ZipReader } from "@zip.js/zip.js";
 import { pick, retry } from "es-toolkit";
 import type { Logger } from "pino";
 import { digest } from "../util.ts";
@@ -77,8 +78,10 @@ export class DiskCachedClient implements HTTPClient {
 		return await this.cache.use(key, async ref => {
 			const entry = await ref.read();
 
-			if (entry)
+			if (entry) {
+				this.logger.debug(`Returning cached metadata for '${key}'`);
 				return this.makeMetadata(entry);
+			}
 
 			const response = await this.retry(url.toString(), () => fetch(url, { method: "HEAD", headers: this.makeHeaders() }));
 
@@ -93,8 +96,29 @@ export class DiskCachedClient implements HTTPClient {
 		});
 	}
 
-	unzipCached(key: string, url: string | URL, entry: string): Promise<string> {
-		throw new Error("Method not implemented.");
+	async unzipCached(key: string, url: string | URL, filename: string): Promise<string> {
+		return await this.cache.use(key, async (ref) => {
+			const entry = await ref.read();
+
+			if (entry && hasBody(entry))
+				return entry.body.value;
+
+			return await this.retry(url.toString(), async () => {
+				const reader = new HttpReader(url, {
+					headers: this.makeHeaders(),
+					useRangeHeader: true,
+					forceRangeRequests: true,
+				});
+
+				const zip = new ZipReader(reader);
+
+				for await (const zipEntry of zip.getEntriesGenerator())
+					if (zipEntry.filename === filename)
+						return await zipEntry.getData!(new TextWriter);
+
+				throw new Error(`Entry not found: '${entry}'`); // TODO: causes retry
+			});
+		});
 	}
 
 	private async compareLocalDigest(entry: CacheEntryWithBody, strategy: CompareLocalDigestStrategy): Promise<boolean> {

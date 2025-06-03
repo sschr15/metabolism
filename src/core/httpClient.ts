@@ -23,9 +23,9 @@ export interface HTTPClient {
 	 * Extract text out of a remote ZIP file. Simply uses Eternal cache strategy.
 	 * @param key Cache key
 	 * @param url URL to extract from using
-	 * @param entry filename
+	 * @param filename Path of file
 	 */
-	unzipCached(key: string, url: string | URL, entry: string): Promise<string>;
+	unzipCached(key: string, url: string | URL, filename: string): Promise<string>;
 }
 
 export interface Metadata {
