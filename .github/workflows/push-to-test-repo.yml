@@ -20,19 +20,14 @@ jobs:
         with:
           repository: TheKodeToad/metabolism-test
           token: ${{ secrets.PAT }}
-          path: run/output
-      - name: Cache upstream metadata
-        uses: actions/cache@v4
-        with:
-          path: run/cache
-          key: run-cache
+          path: run
       - uses: oven-sh/setup-bun@v2
       - run: bun install --production --frozen-lockfile
       - name: Generate
         run: env PINO_LOG_LEVEL=debug bun start all | bun pino-pretty
       - name: Push
         run: |
-          cd run/output
+          cd run
           git config user.email "gitbot@scrumplex.net"
           git config user.name "PrismAutomata"
           git add .
