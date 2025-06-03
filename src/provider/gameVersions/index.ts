@@ -1,5 +1,5 @@
-import { HTTPCacheMode, type HTTPCache } from "#core/httpCache.ts";
-import type { DiskHTTPCache } from "#core/impl/diskHTTPCache.ts";
+import { HTTPCacheMode, type HTTPClient } from "#core/httpClient.ts";
+import type { DiskCachedClient } from "#core/impl/http/diskCachedClient.ts";
 import { defineProvider } from "#core/provider.ts";
 import { PistonVersion } from "#schema/pistonMeta/pistonVersion.ts";
 import { PistonVersionManifest, PistonVersionRef } from "#schema/pistonMeta/pistonVersionManifest.ts";
@@ -16,28 +16,28 @@ export default defineProvider({
 	}
 });
 
-async function pistonMetaVersions(http: DiskHTTPCache): Promise<PistonVersion[]> {
+async function pistonMetaVersions(http: DiskCachedClient): Promise<PistonVersion[]> {
 	const base = "piston-meta";
 
 	const manifest = PistonVersionManifest.parse(
-		(await http.fetchJSON(
+		(await http.getCached(
 			base + "/versions.json",
 			new URL("mc/game/version_manifest_v2.json", PISTON_META)
-		)).body
+		)).json()
 	);
 
 	return await getVersions(http, base, manifest.versions);
 }
 
 // not all omniarchive versions - just enough to maintain backwards compat :)
-async function omniarchiveVersions(http: DiskHTTPCache): Promise<PistonVersion[]> {
+async function omniarchiveVersions(http: DiskCachedClient): Promise<PistonVersion[]> {
 	const base = "omniarchive";
 
 	const manifest = PistonVersionManifest.parse(
-		(await http.fetchJSON(
+		(await http.getCached(
 			base + "/manifest.json",
 			new URL("v1/manifest.json", OMNIARCHIVE_META)
-		)).body
+		)).json()
 	);
 
 	const versions = manifest.versions
@@ -47,17 +47,16 @@ async function omniarchiveVersions(http: DiskHTTPCache): Promise<PistonVersion[]
 	return getVersions(http, base, versions);
 }
 
-async function getVersions(http: HTTPCache, base: string, versions: PistonVersionRef[]): Promise<PistonVersion[]> {
+async function getVersions(http: HTTPClient, base: string, versions: PistonVersionRef[]): Promise<PistonVersion[]> {
 	return await Promise.all(versions.map(async (version): Promise<PistonVersion> => {
-		const response = await http.fetchJSON(
+		const response = (await http.getCached(
 			base + "/" + version.id + ".json",
 			version.url,
 			{ mode: HTTPCacheMode.CompareLocalDigest, algorithm: "sha-1", expected: version.sha1 }
-		);
-		const parsed = PistonVersion.parse(response.body);
+		)).json();
 
 		// manifest ID and type should take precidence - in some cases we override it
-		return { ...parsed, id: version.id, type: version.type };
+		return { ...PistonVersion.parse(response), id: version.id, type: version.type };
 	}));
 }
 

@@ -8,7 +8,7 @@ import { setIfAbsent } from "#util/general.ts";
 import { pick, sortBy } from "es-toolkit";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { DiskHTTPCache } from "./diskHTTPCache.ts";
+import { DiskCachedClient } from "./http/diskCachedClient.ts";
 import { GOALS } from "./registry.ts";
 import { digest } from "./util.ts";
 
@@ -91,9 +91,8 @@ async function run(providers: Set<Provider>, dependents: Map<Provider, Goal[]>, 
 }
 
 async function runProvider(provider: Provider, options: RunnerOptions): Promise<unknown> {
-	const http = new DiskHTTPCache({
+	const http = new DiskCachedClient({
 		dir: path.join(options.cacheDir, provider.id),
-		encoding: "utf-8",
 		userAgent: options.userAgent,
 		assumeUpToDate: options.assumeUpToDate,
 	});

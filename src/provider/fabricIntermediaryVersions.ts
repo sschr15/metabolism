@@ -1,4 +1,3 @@
-import { HTTPCacheMode } from "#core/httpCache.ts";
 import { defineProvider } from "#core/provider.ts";
 import { FabricMetaVersion, FabricMetaVersions } from "#schema/fabricMeta.ts";
 import { FABRIC_MAVEN, FABRIC_META } from "#util/constants/domains.ts";
@@ -8,18 +7,14 @@ export default defineProvider({
 
 	async provide(http) {
 		const list = FabricMetaVersions.parse(
-			(await http.fetchJSON(
+			(await http.getCached(
 				"versions_loader.json",
 				new URL("v2/versions/intermediary", FABRIC_META)
-			)).body
+			)).json()
 		);
 
 		return await Promise.all(list.map(async (version): Promise<FabricIntermediaryVersion> => {
-			const infoResponse = await http.fetchMetadata(
-				version.version + ".jar",
-				version.maven.url(FABRIC_MAVEN, "jar"),
-				{ mode: HTTPCacheMode.Eternal }
-			);
+			const infoResponse = await http.headCached(version.version + ".jar", version.maven.url(FABRIC_MAVEN, "jar"));
 
 			if (!infoResponse.lastModified)
 				throw new Error("Missing Last-Modified header");

@@ -1,4 +1,5 @@
 import { relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { pino, type Bindings, type ChildLoggerOptions } from "pino";
 
 const mainLogger = pino({
@@ -14,7 +15,12 @@ function getScriptName(): string {
 	new Error().stack;
 	Error.prepareStackTrace = prepareStackTrace;
 
-	return capturedStack![2]!.getFileName()!;
+	const fileName = capturedStack![2]!.getFileName()!;
+
+	if (fileName.startsWith("file:"))
+		return fileURLToPath(fileName);
+	else
+		return fileName;
 }
 
 export function moduleLogger<ChildCustomLevels extends string = never>(bindings?: Bindings, options?: ChildLoggerOptions<ChildCustomLevels>) {

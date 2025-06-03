@@ -1,5 +1,5 @@
-import { HTTPCacheMode } from "#core/httpCache.ts";
-import type { DiskHTTPCache } from "#core/impl/diskHTTPCache.ts";
+import { HTTPCacheMode } from "#core/httpClient.ts";
+import type { DiskCachedClient } from "#core/impl/http/diskCachedClient.ts";
 import { defineProvider } from "#core/provider.ts";
 import { FabricMetaVersions } from "#schema/fabricMeta.ts";
 import { MavenArtifactRef } from "#schema/mavenArtifactRef.ts";
@@ -20,16 +20,16 @@ export const quiltLoaderVersions = defineProvider({
 
 export default [fabricLoaderVersions, quiltLoaderVersions];
 
-async function provide(http: DiskHTTPCache, meta: string | URL, maven: string | URL): Promise<FabricLoaderInfo[]> {
+async function provide(http: DiskCachedClient, meta: string | URL, maven: string | URL): Promise<FabricLoaderInfo[]> {
 	const list = FabricMetaVersions.parse(
-		(await http.fetchJSON(
+		(await http.getCached(
 			"versions_loader.json",
 			new URL("versions/loader", meta)
-		)).body
+		)).json()
 	);
 
 	return await Promise.all(list.map(async (version): Promise<FabricLoaderInfo> => {
-		const infoResponse = await http.fetchJSON(
+		const infoResponse = await http.getCached(
 			version.version + ".json",
 			version.maven.url(maven, "json"),
 			{ mode: HTTPCacheMode.Eternal }
@@ -38,7 +38,7 @@ async function provide(http: DiskHTTPCache, meta: string | URL, maven: string | 
 		if (!infoResponse.lastModified)
 			throw new Error("Missing Last-Modified header");
 
-		const info = LoaderInfo.parse(infoResponse.body);
+		const info = LoaderInfo.parse(infoResponse.json());
 
 		return {
 			...info,
