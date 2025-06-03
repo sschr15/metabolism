@@ -13,7 +13,7 @@
 		"lint": "tsc"
 	},
 	"license": "MIT",
-	"packageManager": "pnpm@1.2.14",
+	"packageManager": "bun@1.2.14",
 	"devDependencies": {
 		"@commander-js/extra-typings": "^14.0.0",
 		"@types/bun": "^1.2.15",
