@@ -1,7 +1,7 @@
 import { HTTPCacheMode, type HTTPCache, type HTTPCacheStrategy, type Response } from "#core/httpCache.ts";
 import { moduleLogger } from "#core/logger.ts";
 import { setIfAbsent } from "#util/general.ts";
-import { delay, Mutex, pick, Semaphore } from "es-toolkit";
+import { delay, Mutex, pick } from "es-toolkit";
 import { Buffer } from 'node:buffer';
 import { mkdir, writeFile } from "node:fs/promises";
 import path, { dirname } from "node:path";
@@ -36,7 +36,6 @@ export class DiskHTTPCache implements HTTPCache {
 	private options: DiskHTTPCacheOptions;
 	private locks: Map<string, Mutex>;
 	private logger: Logger;
-	private static requestLimiter = new Semaphore(16);
 
 	constructor(options: DiskHTTPCacheOptions) {
 		this.options = {
@@ -119,7 +118,7 @@ export class DiskHTTPCache implements HTTPCache {
 			try {
 				this.logger.debug(`Sending a request to '${url}' for '${key}'`);
 
-				const response = await this.limit(() => fetch(url, options));
+				const response = await fetch(url, options);
 
 				if (response.status >= 500 && response.status < 600)
 					throw new Error(`Got ${response.status} ('${response.statusText}')`);
@@ -277,16 +276,6 @@ export class DiskHTTPCache implements HTTPCache {
 
 			if (!mutex.isLocked)
 				this.locks.delete(entryPath);
-		}
-	}
-
-	private async limit<T>(callback: () => Promise<T>): Promise<T> {
-		await DiskHTTPCache.requestLimiter.acquire();
-
-		try {
-			return await callback();
-		} finally {
-			DiskHTTPCache.requestLimiter.release();
 		}
 	}
 }

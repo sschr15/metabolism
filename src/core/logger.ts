@@ -1,23 +1,11 @@
 import { relative } from "node:path";
-import { fileURLToPath } from "node:url";
 import { pino, type Bindings, type ChildLoggerOptions } from "pino";
-
-const getCallSites = await import("node:util").then(module => module.getCallSites);
 
 const mainLogger = pino({
 	level: process.env.PINO_LOG_LEVEL || "info"
 });
 
 function getScriptName(): string {
-	if (getCallSites) {
-		const { scriptName } = getCallSites()[2]!;
-
-		if (globalThis["Deno"])
-			return scriptName;
-		else
-			return fileURLToPath(scriptName);
-	}
-
 	let capturedStack: NodeJS.CallSite[];
 
 	const prepareStackTrace = Error.prepareStackTrace;

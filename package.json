@@ -8,18 +8,19 @@
 		"#project/*": "./*"
 	},
 	"scripts": {
-		"start": "node --experimental-strip-types --experimental-transform-types ./src/core/impl/main.ts",
-		"startBun": "bun ./src/core/impl/main.ts",
+		"start": "bun ./src/core/impl/main.ts",
+		"startNode": "node --experimental-strip-types --experimental-transform-types ./src/core/impl/main.ts",
 		"lint": "tsc"
 	},
 	"license": "MIT",
-	"packageManager": "pnpm@10.7.1",
+	"packageManager": "pnpm@1.2.14",
 	"devDependencies": {
 		"@commander-js/extra-typings": "^14.0.0",
-		"@types/node": "^22.15.19",
+		"@types/bun": "^1.2.15",
 		"typescript": "^5.8.3"
 	},
 	"dependencies": {
+		"@zip.js/zip.js": "^2.7.62",
 		"commander": "^14.0.0",
 		"es-toolkit": "^1.38.0",
 		"pino": "^9.7.0",

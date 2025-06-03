@@ -26,14 +26,10 @@ jobs:
         with:
           path: run/cache
           key: run-cache
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: pnpm install --frozen-lockfile --prod
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --production --frozen-lockfile
       - name: Generate
-        run: env PINO_LOG_LEVEL=debug pnpm run start all | pnpm pino-pretty
+        run: env PINO_LOG_LEVEL=debug bun start all | bun pino-pretty
       - name: Push
         run: |
           cd run/output

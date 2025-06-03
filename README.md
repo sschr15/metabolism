@@ -2,8 +2,8 @@
 Scripts to generate Prism Launcher metadata based on external sources - possible future implementation in TypeScript (not officially adopted nor agreed to be adopted).
 
 ## Usage
-First, run `pnpm install`.
-To run `pnpm start` (Node.JS) or `pnpm startBun` (might improve performance).
+First, run `bun install`.
+To run `bun start`, or to run with Node.JS `bun startNode` (doesn't currently work entirely correctly).
 
 There are two key concepts - providers and goals. Providers are metadata sources, and goals are metadata targets.
 For example, the `piston-meta` provider provides data to the `net.minecraft` goal.
