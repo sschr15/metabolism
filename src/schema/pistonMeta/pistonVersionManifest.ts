@@ -7,8 +7,8 @@ export const PistonVersionRef = z.object({
 	sha1: z.string(),
 });
 
-export interface PistonVersionRef extends z.output<typeof PistonVersionRef> { }
+export type PistonVersionRef = z.output<typeof PistonVersionRef>;
 
 export const PistonVersionManifest = z.object({ versions: z.array(PistonVersionRef) });
 
-export interface PistonVersionManifest extends z.output<typeof PistonVersionManifest> { }
+export type PistonVersionManifest = z.output<typeof PistonVersionManifest>;

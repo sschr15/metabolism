@@ -18,7 +18,7 @@ export const PistonRule = z.object({
 	}).optional(),
 });
 
-export interface PistonRule extends z.output<typeof PistonRule> { }
+export type PistonRule = z.output<typeof PistonRule>;
 
 export const PistonArtifact = z.object({
 	url: z.string(),
@@ -27,7 +27,7 @@ export const PistonArtifact = z.object({
 	path: z.string().optional(),
 });
 
-export interface PistonArtifact extends z.output<typeof PistonArtifact> { }
+export type PistonArtifact = z.output<typeof PistonArtifact>;
 
 export const PistonLibrary = z.object({
 	name: MavenArtifactRef,
@@ -47,7 +47,7 @@ export const PistonLibrary = z.object({
 	extract: z.object({ exclude: z.array(string()) }).optional(),
 });
 
-export interface PistonLibrary extends z.output<typeof PistonLibrary> { }
+export type PistonLibrary = z.output<typeof PistonLibrary>;
 
 export function parsePistonLibraryName(name: string) {
 	const [groupID, artifactID, version, classifier] = name.split(":", 4);
@@ -66,7 +66,7 @@ export const PistonAssetIndexRef = z.object({
 	url: z.string(),
 });
 
-export interface PistonAssetIndexRef extends z.output<typeof PistonAssetIndexRef> { }
+export type PistonAssetIndexRef = z.output<typeof PistonAssetIndexRef>;
 
 
 export const PistonArgument = z.union([
@@ -107,5 +107,5 @@ export const PistonVersion = z.object({
 	complianceLevel: z.number().optional(),
 });
 
-export interface PistonVersion extends z.output<typeof PistonVersion> { }
+export type PistonVersion = z.output<typeof PistonVersion>
 

@@ -66,7 +66,7 @@ export const FabricLoaderLibrary = z.object({
 	size: z.number().optional(),
 });
 
-export interface FabricLoaderLibrary extends z.output<typeof FabricLoaderLibrary> { }
+export type FabricLoaderLibrary = z.output<typeof FabricLoaderLibrary>;
 
 const LoaderInfo = z.object({
 	version: z.union([z.literal(1), z.literal(2)]),

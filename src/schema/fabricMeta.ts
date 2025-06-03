@@ -7,6 +7,6 @@ export const FabricMetaVersion = z.object({
 	separator: z.string().optional(),
 });
 
-export interface FabricMetaVersion extends z.output<typeof FabricMetaVersion> { }
+export type FabricMetaVersion = z.output<typeof FabricMetaVersion>;
 
 export const FabricMetaVersions = z.array(FabricMetaVersion);
