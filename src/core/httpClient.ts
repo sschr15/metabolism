@@ -2,30 +2,30 @@
 export interface HTTPClient {
 	/**
 	 * Fetch text over HTTP and store for later use or reuse stored data if it is up-to-date.
-	 * @param key Cache key
 	 * @param url URL to GET
+	 * @param key Cache key
 	 * @param strategy Caching strategy - defaults to ConditionalRequest
 	 * @returns metadata and body
 	 */
-	getCached(key: string, url: string | URL, strategy?: HTTPCacheStrategy): Promise<Response>;
+	getCached(url: string | URL, key: string, strategy?: HTTPCacheStrategy): Promise<Response>;
 
 	/**
 	 * Fetch metadata over HTTP and store for later use or reuse stored data if it is up-to-date. Simply uses Eternal cache strategy.
-	 * @param key Cache key
 	 * @param url URL to HEAD
+	 * @param key Cache key
 	 * @param contentType Content-Type header
 	 * @param strategy Caching strategy - defaults to ConditionalRequest
 	 * @returns metadata
 	 */
-	headCached(key: string, url: string | URL): Promise<Metadata>;
+	headCached(url: string | URL, key: string): Promise<Metadata>;
 
 	/**
 	 * Extract text out of a remote ZIP file. Simply uses Eternal cache strategy.
-	 * @param key Cache key
 	 * @param url URL to extract from using
-	 * @param filename Path of file
+	 * @param files zip entry to cache key mapping
+	 * @return array of zip entry content ordered the same as the files parameter
 	 */
-	unzipCached(key: string, url: string | URL, filename: string): Promise<string>;
+	unzipCached(url: string | URL, files: { path: string; key: string; }[]): Promise<string[]>;
 }
 
 export interface Metadata {

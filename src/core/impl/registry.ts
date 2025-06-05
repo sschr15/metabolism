@@ -33,7 +33,7 @@ async function importGoals(): Promise<Map<string, Goal>> {
 	const result: Map<string, Goal> = new Map;
 
 	for await (const [path, defaultExport] of importValues("../../goal")) {
-		if (typeof defaultExport.generate !== "function")
+		if (typeof defaultExport?.generate !== "function")
 			throw new Error(`Expected \`export default exportGoal\` (@'${path}')!`);
 
 		result.set(defaultExport.id, defaultExport);

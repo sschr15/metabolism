@@ -1,9 +1,8 @@
+import { OMNIARCHIVE_META, PISTON_META } from "#common/constants/urls.ts";
 import { HTTPCacheMode, type HTTPClient } from "#core/httpClient.ts";
-import type { DiskCachedClient } from "#core/impl/http/diskCachedClient.ts";
 import { defineProvider } from "#core/provider.ts";
 import { PistonVersion } from "#schema/pistonMeta/pistonVersion.ts";
 import { PistonVersionManifest, PistonVersionRef } from "#schema/pistonMeta/pistonVersionManifest.ts";
-import { OMNIARCHIVE_META, PISTON_META } from "#util/constants/urls.ts";
 import { sortBy } from "es-toolkit";
 import { OMNIARCHIVE_MAPPINGS } from "./omniarchiveMappings.ts";
 
@@ -16,13 +15,13 @@ export default defineProvider({
 	}
 });
 
-async function pistonMetaVersions(http: DiskCachedClient): Promise<PistonVersion[]> {
+async function pistonMetaVersions(http: HTTPClient): Promise<PistonVersion[]> {
 	const base = "piston-meta";
 
 	const manifest = PistonVersionManifest.parse(
 		(await http.getCached(
+			new URL("mc/game/version_manifest_v2.json", PISTON_META),
 			base + "/versions.json",
-			new URL("mc/game/version_manifest_v2.json", PISTON_META)
 		)).json()
 	);
 
@@ -30,13 +29,13 @@ async function pistonMetaVersions(http: DiskCachedClient): Promise<PistonVersion
 }
 
 // not all omniarchive versions - just enough to maintain backwards compat :)
-async function omniarchiveVersions(http: DiskCachedClient): Promise<PistonVersion[]> {
+async function omniarchiveVersions(http: HTTPClient): Promise<PistonVersion[]> {
 	const base = "omniarchive";
 
 	const manifest = PistonVersionManifest.parse(
 		(await http.getCached(
+			new URL("v1/manifest.json", OMNIARCHIVE_META),
 			base + "/manifest.json",
-			new URL("v1/manifest.json", OMNIARCHIVE_META)
 		)).json()
 	);
 
@@ -50,8 +49,8 @@ async function omniarchiveVersions(http: DiskCachedClient): Promise<PistonVersio
 async function getVersions(http: HTTPClient, base: string, versions: PistonVersionRef[]): Promise<PistonVersion[]> {
 	return await Promise.all(versions.map(async (version): Promise<PistonVersion> => {
 		const response = (await http.getCached(
-			base + "/" + version.id + ".json",
 			version.url,
+			base + "/" + version.id + ".json",
 			{ mode: HTTPCacheMode.CompareLocalDigest, algorithm: "sha-1", expected: version.sha1 }
 		)).json();
 

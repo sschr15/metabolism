@@ -1,9 +1,8 @@
-import { HTTPCacheMode } from "#core/httpClient.ts";
-import type { DiskCachedClient } from "#core/impl/http/diskCachedClient.ts";
+import { FABRIC_MAVEN, FABRIC_META, QUILT_MAVEN, QUILT_META } from "#common/constants/urls.ts";
+import { HTTPCacheMode, type HTTPClient } from "#core/httpClient.ts";
 import { defineProvider } from "#core/provider.ts";
 import { FabricInstallerData } from "#schema/fabric/fabricInstallerData.ts";
 import { FabricMetaVersion, FabricMetaVersions } from "#schema/fabric/fabricMeta.ts";
-import { FABRIC_MAVEN, FABRIC_META, QUILT_MAVEN, QUILT_META } from "#util/constants/urls.ts";
 
 export const fabricLoaderVersions = defineProvider({
 	id: "fabric-loader-versions",
@@ -19,18 +18,23 @@ export const quiltLoaderVersions = defineProvider({
 
 export default [fabricLoaderVersions, quiltLoaderVersions];
 
-async function provide(http: DiskCachedClient, meta: string | URL, maven: string | URL): Promise<FabricLoaderVersion[]> {
+export interface FabricLoaderVersion extends FabricMetaVersion {
+	installerData: FabricInstallerData;
+	lastModified: Date;
+}
+
+async function provide(http: HTTPClient, meta: string | URL, maven: string | URL): Promise<FabricLoaderVersion[]> {
 	const list = FabricMetaVersions.parse(
 		(await http.getCached(
+			new URL("versions/loader", meta),
 			"loader-versions.json",
-			new URL("versions/loader", meta)
 		)).json()
 	);
 
 	return await Promise.all(list.map(async (version): Promise<FabricLoaderVersion> => {
 		const installerDataResponse = await http.getCached(
-			version.version + ".json",
 			version.maven.url(maven, "json"),
+			version.version + ".json",
 			{ mode: HTTPCacheMode.Eternal }
 		);
 
@@ -47,7 +51,3 @@ async function provide(http: DiskCachedClient, meta: string | URL, maven: string
 	}));
 }
 
-export interface FabricLoaderVersion extends FabricMetaVersion {
-	installerData: FabricInstallerData;
-	lastModified: Date;
-}

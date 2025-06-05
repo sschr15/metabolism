@@ -25,7 +25,7 @@ export class DiskCachedClient implements HTTPClient {
 		this.cache = new DiskCache(options.dir);
 	}
 
-	async getCached(key: string, url: string | URL, strategy: HTTPCacheStrategy = { mode: HTTPCacheMode.ConditionalRequest }): Promise<Response> {
+	async getCached(url: string | URL, key: string, strategy: HTTPCacheStrategy = { mode: HTTPCacheMode.ConditionalRequest }): Promise<Response> {
 		return await this.cache.use(key, async ref => {
 			const entry = await ref.read();
 
@@ -74,7 +74,7 @@ export class DiskCachedClient implements HTTPClient {
 		});
 	}
 
-	async headCached(key: string, url: string | URL): Promise<Metadata> {
+	async headCached(url: string | URL, key: string): Promise<Metadata> {
 		return await this.cache.use(key, async ref => {
 			const entry = await ref.read();
 
@@ -96,29 +96,62 @@ export class DiskCachedClient implements HTTPClient {
 		});
 	}
 
-	async unzipCached(key: string, url: string | URL, filename: string): Promise<string> {
-		return await this.cache.use(key, async (ref) => {
-			const entry = await ref.read();
+	async unzipCached(url: string | URL, files: { path: string; key: string; }[]): Promise<string[]> {
+		return await this.cache.useAll(
+			files.map(file => file.key),
+			async refs => {
+				const result: string[] = new Array(files.length);
 
-			if (entry && hasBody(entry))
-				return entry.body.value;
+				const cached = await Promise.all(refs.map(ref => ref.read()));
 
-			return await this.retry(url.toString(), async () => {
-				const reader = new HttpReader(url, {
-					headers: this.makeHeaders(),
-					useRangeHeader: true,
-					forceRangeRequests: true,
+				for (const [index, cacheEntry] of cached.entries()) {
+					if (!cacheEntry?.body)
+						continue;
+
+					result[index] = cacheEntry.body.value;
+				}
+
+				if (!result.includes(undefined!))
+					return result;
+
+				return await this.retry(url.toString(), async () => {
+					const reader = new HttpReader(url, {
+						headers: this.makeHeaders(),
+						useRangeHeader: true,
+						forceRangeRequests: true,
+					});
+
+					const zip = new ZipReader(reader);
+
+					const entries = await zip.getEntries();
+
+					for (const zipEntry of entries) {
+						const index = files.findIndex(file => file.path === zipEntry.filename);
+
+						if (index === -1)
+							continue;
+
+						if (result[index] !== undefined)
+							continue;
+
+						const file = files[index]!;
+						const ref = refs[index]!;
+
+						const content = await zipEntry.getData!(new TextWriter);
+
+						await ref.write({ body: { value: content } });
+						result[index] = content;
+
+						logger.debug(`Cache entry '${file.key}' updated from ZIP entry '${zipEntry.filename}' from '${url}'`);
+
+						if (!result.includes(undefined!))
+							break;
+					}
+
+					return result;
 				});
-
-				const zip = new ZipReader(reader);
-
-				for await (const zipEntry of zip.getEntriesGenerator())
-					if (zipEntry.filename === filename)
-						return await zipEntry.getData!(new TextWriter);
-
-				throw new Error(`Entry not found: '${entry}'`); // TODO: causes retry
-			});
-		});
+			}
+		);
 	}
 
 	private async compareLocalDigest(entry: CacheEntryWithBody, strategy: CompareLocalDigestStrategy): Promise<boolean> {

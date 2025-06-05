@@ -1,5 +1,5 @@
+import { setIfAbsent } from "#common/general.ts";
 import { moduleLogger } from "#core/logger.ts";
-import { setIfAbsent } from "#util/general.ts";
 import { Mutex, omit } from "es-toolkit";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -55,7 +55,7 @@ export class DiskCache {
 	 * Take exclusive control of an entry - pauses until the previous call is complete.
 	 * @param key The cache key
 	 */
-	async use<T>(key: string, callback: (accessor: CacheEntryAccessor) => T): Promise<Awaited<T>> {
+	async use<T>(key: string, callback: (ref: CacheEntryAccessor) => T): Promise<Awaited<T>> {
 		const lock = setIfAbsent(this.locks, key, new Mutex);
 		await lock.acquire();
 
@@ -63,6 +63,27 @@ export class DiskCache {
 			return await callback(new CacheEntryAccessor(this.dir, key));
 		} finally {
 			lock.release();
+
+			if (!lock.isLocked)
+				this.locks.delete(key);
+		}
+	}
+
+	async useAll<T>(keys: string[], callback: (refs: CacheEntryAccessor[]) => T): Promise<Awaited<T>> {
+		const locks = keys.map(key => setIfAbsent(this.locks, key, new Mutex));
+		await Promise.all(locks.map(lock => lock.acquire()));
+
+		try {
+			return await callback(keys.map(key => new CacheEntryAccessor(this.dir, key)));
+		} finally {
+			locks.forEach(lock => lock.release());
+
+			for (const [i, lock] of locks.entries()) {
+				const key = keys[i]!;
+
+				if (!lock.isLocked)
+					this.locks.delete(key);
+			}
 		}
 	}
 }

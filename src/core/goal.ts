@@ -15,8 +15,4 @@ export interface Goal<TProvider extends Provider = Provider> {
 	recommend(first: boolean, version: VersionOutput): boolean;
 }
 
-/**
- * Omit recommended to set it to <is this version the latest>
- */
 export type VersionOutput = Omit<VersionFile, "uid" | "name" | "formatVersion">;
-

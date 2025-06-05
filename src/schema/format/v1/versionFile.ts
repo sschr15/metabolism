@@ -24,6 +24,7 @@ export interface VersionFile {
 
 	mainJar?: VersionFileLibrary;
 	libraries?: VersionFileLibrary[];
+	mavenFiles?: VersionFileLibrary[];
 	assetIndex?: PistonAssetIndexRef;
 }
 

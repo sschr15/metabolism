@@ -1,12 +1,12 @@
+import { setIfAbsent } from "#common/general.ts";
+import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#common/transformation/maven.ts";
+import { isPlatformLibrary, transformPistonArtifact } from "#common/transformation/pistonMeta.ts";
 import { defineGoal, type VersionOutput } from "#core/goal.ts";
 import { moduleLogger } from "#core/logger.ts";
 import pistonMetaGameVersions from "#provider/gameVersions/index.ts";
 import type { VersionFileArtifact, VersionFileDependency, VersionFileLibrary, VersionFilePlatform } from "#schema/format/v1/versionFile.ts";
 import { MavenArtifactRef } from "#schema/mavenArtifactRef.ts";
 import { PistonVersion } from "#schema/pistonMeta/pistonVersion.ts";
-import { setIfAbsent } from "#util/general.ts";
-import { isLWJGL2, isLWJGL2Dependency, isLWJGL3 } from "#util/transformation/maven.ts";
-import { isPlatformLibrary, transformPistonArtifact } from "#util/transformation/pistonMeta.ts";
 import { omit } from "es-toolkit";
 import { isEmpty } from "es-toolkit/compat";
 import { LWJGL_EXTRA_NATIVES } from "./extraNatives.ts";

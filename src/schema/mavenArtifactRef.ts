@@ -1,5 +1,7 @@
 import { z } from "zod/v4";
 
+// TODO: make more general purpose?
+
 export const MavenArtifactRef = z.string().transform((name, context) => {
 	const [groupID, artifactID, version, classifier] = name.split(":", 4);
 

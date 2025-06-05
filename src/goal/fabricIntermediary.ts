@@ -1,6 +1,6 @@
+import { FABRIC_MAVEN } from "#common/constants/urls.ts";
 import { defineGoal, type VersionOutput } from "#core/goal.ts";
 import fabricIntermediaryVersions, { type FabricIntermediaryVersion } from "#provider/fabricIntermediaryVersions.ts";
-import { FABRIC_MAVEN } from "#util/constants/urls.ts";
 
 export default defineGoal({
 	id: "net.fabricmc.intermediary",

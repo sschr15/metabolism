@@ -39,7 +39,9 @@ Generation for...
   - (3.x.x) missing backported apple sillicon natives
   - (2.x.x) does not force version to latest on apple sillicon
 - ✅ Fabric
-- ❌ NeoForge
+- 🚧 NeoForge (does not launch)
+  - Recommend versions
+  - Classify versions as beta
 - ❌ Forge
 - ✅ Quilt
 - ❌ LiteLoader
