@@ -40,7 +40,7 @@ async function provide(http: HTTPClient, group: string, artifact: string): Promi
 
 	const basedVersions = versions.filter(version => !CRINGE_VERSIONS.includes(version));
 
-	const limit = concurrencyLimit(16);
+	const limit = concurrencyLimit(8);
 
 	return await Promise.all(basedVersions.map(async version => {
 		const installerArtifact = MavenArtifactRef.parse(group + ":" + artifact + ":" + version + ":installer");
