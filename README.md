@@ -1,6 +1,8 @@
 # Metabolism
 Scripts to generate Prism Launcher metadata based on external sources - possible future implementation in TypeScript (not officially adopted nor agreed to be adopted).
 
+For the time being [this repo](https://github.com/TheKodeToad/metabolism-test) mirrors the latest commit - and you can use the generated output by setting your Metadata URL to https://thekodetoad.github.io/metabolism-test/output/.
+
 ## Usage
 First, run `bun install`.
 To run with Bun, run `bun start` - or to run with Node.JS, run `bun startNode` (doesn't currently work entirely correctly).
