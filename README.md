@@ -1,5 +1,5 @@
 # Metabolism
-Scripts to generate Prism Launcher metadata based on external sources - possible future implementation in TypeScript (not officially adopted nor agreed to be adopted).
+Generation for Minecraft game and loader metadata - possible future implementation in TypeScript.
 
 For the time being [this repo](https://github.com/TheKodeToad/metabolism-test) mirrors the latest commit - and you can use the generated output by setting your Metadata URL to https://thekodetoad.github.io/metabolism-test/output/.
 
@@ -18,8 +18,8 @@ Available commands:
 ### `prepare <provider>...`
 Prepare data from the specified providers.
 
-### `sync <provider>...` (recommended)
-`prepare`, then run dependent goals.
+### `sync <provider>...`
+`prepare`, then run dependent goals. Useful as the directories touched will be exclusive to each provider.
 
 ### `build <goal>...`
 Runs `prepare` for all dependencies of the specified goals.
@@ -42,11 +42,14 @@ Generation for...
   - (2.x.x) does not force version to latest on apple sillicon
 - ✅ Fabric
 - 🚧 NeoForge (does not launch)
-  - Recommend versions
-  - Classify versions as beta
+  - no versions are recommended
+  - all versions are classified as rlease
 - ❌ Forge
 - ✅ Quilt
 - ❌ LiteLoader
+- ❌ Mojang Java
+- ❌ Adoptium
+- ❌ Azul Zulu
 
 ## Why
 
