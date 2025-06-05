@@ -197,11 +197,11 @@ export class DiskCachedClient implements HTTPClient {
 
 	private retry<T>(what: string, callback: () => Promise<T>): Promise<T> {
 		return retry(callback, {
-			retries: 5,
+			retries: 10,
 			delay: attempts => {
-				const period = 1000 * (2 ** attempts);
+				const period = 3000 * (2 ** attempts);
 				logger.warn(`Retrying '${what}' in ${period / 1000}s`);
-				return 1000 * (2 ** attempts);
+				return period;
 			},
 		});
 	}
