@@ -50,7 +50,22 @@ async function omniarchiveVersions(http: HTTPClient): Promise<PistonVersion[]> {
 			if (Object.hasOwn(OMNIARCHIVE_MAPPINGS, x.id)) {
 				return { ...x, ...OMNIARCHIVE_MAPPINGS[x.id]! };
 			}
-			return x;
+
+			if (x.id.startsWith("in") || x.id.startsWith("c") || x.id.startsWith("a")) {
+				return { ...x, type: "old_alpha" };
+			}
+			if (x.id.startsWith("b")) {
+				return { ...x, type: "old_beta" };
+			}
+			if (x.id.match(/^\d\dw([0-4]\d|5[012]).+$/)) {
+				return { ...x, type: "snapshot" };
+			}
+			if (x.id.match(/^1\d\.\d{1,2}(\.\d+)?$/)) {
+				return { ...x, type: "release" };
+			}
+
+			// unknown type
+			return { ...x, type: "experiment" };
 		});
 
 	return getVersions(http, base, versions);
