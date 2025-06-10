@@ -33,6 +33,9 @@ function transformVersion(version: PistonVersion): VersionOutput {
 
 		mainClass = undefined;
 		traits.push(VersionFileTrait.LegacyLaunch);
+	} else if (version.type === "old_beta" || version.type === "old_alpha") {
+		mainClass = undefined;
+		traits.push(VersionFileTrait.LegacyLaunch);
 	}
 
 	if (version.arguments?.game) {
