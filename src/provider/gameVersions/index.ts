@@ -11,7 +11,9 @@ export default defineProvider({
 
 	async provide(http): Promise<PistonVersion[]> {
 		return Promise.all([pistonMetaVersions(http), omniarchiveVersions(http)])
-			.then(versions => sortBy(versions.flat(), [version => -version.releaseTime]));
+		    .then(versions => versions.flat())
+			.then(versions => versions.filter((version, idx, self) => self.findIndex(v => v.id === version.id) === idx))
+			.then(versions => sortBy(versions, [version => -version.releaseTime]));
 	}
 });
 
@@ -39,9 +41,17 @@ async function omniarchiveVersions(http: HTTPClient): Promise<PistonVersion[]> {
 		)).json()
 	);
 
+	// const versions = manifest.versions
+	// 	.filter(x => Object.hasOwn(OMNIARCHIVE_MAPPINGS, x.id))
+	// 	.map(x => ({ ...x, ...OMNIARCHIVE_MAPPINGS[x.id]! }));
+
 	const versions = manifest.versions
-		.filter(x => Object.hasOwn(OMNIARCHIVE_MAPPINGS, x.id))
-		.map(x => ({ ...x, ...OMNIARCHIVE_MAPPINGS[x.id]! }));
+		.map(x => {
+			if (Object.hasOwn(OMNIARCHIVE_MAPPINGS, x.id)) {
+				return { ...x, ...OMNIARCHIVE_MAPPINGS[x.id]! };
+			}
+			return x;
+		});
 
 	return getVersions(http, base, versions);
 }
